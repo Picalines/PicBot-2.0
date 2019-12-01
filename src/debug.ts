@@ -9,9 +9,15 @@ export abstract class Debug {
 
     private static lastLogs = "";
 
+    private static getDate(): string {
+        const pat = /.+(\d+:){2}\d+/g;
+        let res = pat.exec(Date());
+        return res ? res.slice()[0] : ":/";
+    }
+
     static Log(msg: any, type: LogType = "event") {
-        let date = `[${(this.datePattern.exec(Date()) as RegExpExecArray)[0]}]`;
-        let m = date + " " + String(msg);
+        let date = `[${this.getDate()}]`;
+        let m = date + " - " + String(msg);
 
         switch (type) {
             case "error": m = "[ERROR] " + m;
@@ -19,7 +25,7 @@ export abstract class Debug {
         }
 
         console.log(m);
-        this.lastLogs = this.lastLogs == "" ? m : "\n" + m;
+        this.lastLogs += "\n" + m;
     }
 
     static async Save() {
