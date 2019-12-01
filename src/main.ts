@@ -24,6 +24,11 @@ bot.on("ready", async () => {
 
 // #region error & close events
 
+async function backup() {
+    Debug.Log("backup...");
+    await Debug.Save();
+}
+
 bot.on("error", async err => {
     Debug.Log("Disconnected from Discord. Trying to connect again (10s delay)...");
     Debug.Log(err, "error");
@@ -50,7 +55,7 @@ async function onClose(exit: boolean) {
     catch (err) {
         Debug.Log(`Error on exiting process: ${err}`, "error");
     }
-    await Debug.Save();
+    await backup();
     Debug.Log("program successfully closed. Goodbye!")
     if (exit) {
         process.exit();
