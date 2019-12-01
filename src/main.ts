@@ -1,3 +1,4 @@
+import { loadCommands } from "./command";
 import * as Discord from "discord.js";
 import * as dotenv from "dotenv";
 import { Debug } from "./debug";
@@ -10,11 +11,16 @@ if (process.env.NODE_ENV !== 'production') {
 export const bot = new Discord.Client();
 
 if (process.env.DISCORD_TOKEN) {
-    bot.login(process.env.DISCORD_TOKEN).then(() => Debug.Log("Successfully loggen in discord!"));
+    bot.login(process.env.DISCORD_TOKEN);
 }
 else {
     throw new Error("discord token is undefined");
 }
+
+bot.on("ready", async () => {
+    Debug.Log("Successfully logged in discord!");
+    await loadCommands();
+});
 
 // #region error & close events
 
