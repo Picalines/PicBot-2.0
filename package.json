@@ -1,0 +1,22 @@
+{
+  "name": "picbot-2.0",
+  "version": "1.0.0",
+  "description": "updated version of picbot",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "tsc && node ."
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "nodejs"
+  ],
+  "author": "picalines",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^12.12.14",
+    "discord.js": "^11.5.1",
+    "dotenv": "^8.2.0",
+    "typescript": "^3.7.2"
+  }
+}
