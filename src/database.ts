@@ -1,65 +1,42 @@
 import * as Discord from "discord.js";
-import * as fs from "./fsAsync";
-import { Debug } from "./debug";
+import { ISerializeable, Property } from "./utils";
+import { bot } from "./main";
 
-export interface IAccount {
-    readonly id: string;
-    xp: number;
-}
+export class Account implements ISerializeable<string, Promise<void>> {
+    private _user: Discord.User;
+    readonly properies: Property<string | number>[];
 
-export interface IReadOnlyAccount extends IAccount {
-    readonly xp: number;
-}
+    get user(): Discord.User { return this._user; }
 
-export interface IGuildData {
-    readonly accounts: { [id: string]: IAccount };
-    readonly prefixes: string[];
-}
-
-export class Database {
-    private guilds: { [id: string]: IGuildData } = {};
-
-    async load(path: string) {
-        Debug.Log("loading database...");
-        this.guilds = {};
-        let guildFiles = (await fs.readdirAsync(path)).filter(f => f.endsWith(".json"));
-        for (let i in guildFiles) {
-            let f = guildFiles[i];
-            let gData: IGuildData = JSON.parse((await fs.readFileAsync(path + f)).toString())
-            if (gData) {
-                this.guilds[f.replace(".json", "")] = gData;
-            }
-        }
-        Debug.Log("database successfully loaded");
+    constructor(user: Discord.User | Discord.GuildMember) {
+        this._user = user instanceof Discord.GuildMember ? user.user : user; 
+        this.properies = [];
     }
 
-    async save(path: string) {
-        Debug.Log("saving database...");
-        for (let i in this.guilds) {
-            let g = this.guilds[i];
-            let gData = JSON.stringify(g, null, 4);
-            await fs.writeFileAsync(path + i + ".json", gData);
-        }
-        Debug.Log("database successfully saved");
+    getProperty(name: string): string | number | undefined {
+        this.properies.forEach(p => {
+            if (p.name == name) {
+                return p.value;
+            }
+        });
+        return undefined;
     }
 
-    getGuildData(guild: Discord.Guild): IGuildData {
-        if (this.guilds[guild.id] === null) {
-            this.guilds[guild.id] = {
-                accounts: {},
-                prefixes: ["!"]
-            }
+    async load(from: string) {
+        let data = JSON.parse(from);
+        this._user = await bot.fetchUser(data.id);
+        while (this.properies.length > 0) {
+            this.properies.pop();
         }
-        return this.guilds[guild.id];
+        data.properies.forEach((p: Property<string | number>) => this.properies.push(p))
     }
 
-    getAccount(member: Discord.GuildMember) {
-        let guild = this.getGuildData(member.guild);
-        if (guild.accounts[member.id] === null) {
-            guild.accounts[member.id] = {
-                id: member.id,
-                xp: 0
-            }
-        }
+    serialize(): string {
+        let props: string[] = [];
+        this.properies.forEach(p => props.push(p.serialize()))
+        return JSON.stringify({
+            "id": this.user.id,
+            "properties": props
+        });
     }
 }
