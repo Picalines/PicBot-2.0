@@ -18,7 +18,7 @@ export class Account extends DataObject<AccountPropertyType> implements ISeriali
     serialize() {
         return {
             "id": this.member != null ? this.member.id : "unknown",
-            "properties": (super.serialize() as any).properties
+            "properties": super.serialize()
         }
     }
 }

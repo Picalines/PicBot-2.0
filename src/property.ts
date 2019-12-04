@@ -29,12 +29,16 @@ export class DataObject<TProp = string | number | boolean> implements ISerialize
         this.properties = [];
     }
 
-    getProperty(name: string): Property<TProp> | undefined {
+    getProperty(name: string, defaultValue?: TProp): Property<TProp> | undefined {
         for (let i in this.properties) {
             let p = this.properties[i];
             if (p.name == name) {
                 return p;
             }
+        }
+        if (defaultValue) {
+            this.properties.push(new Property(name, defaultValue));
+            return this.properties[this.properties.length-1];
         }
         return undefined;
     }
@@ -66,8 +70,6 @@ export class DataObject<TProp = string | number | boolean> implements ISerialize
     serialize(): {} {
         let props: {}[] = []
         this.properties.forEach(p => props.push(p.serialize()))
-        return {
-            properties: props
-        }
+        return props;
     }
 }
