@@ -1,35 +1,18 @@
 import { DataObject } from "./property";
 import * as Discord from "discord.js";
+import { Account } from "./account";
 
-export type ChatType = "guild" | "groupdm"
+export class GuildData extends DataObject {
+    readonly guild: Discord.Guild;
 
-export class Chat extends DataObject {
-    readonly environment: Discord.GroupDMChannel | Discord.Guild;
-    readonly id: string;
-    
     prefixes: string[];
+    accounts: { [id: string]: Account };
 
-    get type(): ChatType {
-        return Chat.getType(this.environment);
-    }
-
-    get members() {
-        return this.environment instanceof Discord.Guild ? this.environment.members : this.environment.recipients;
-    }
-
-    constructor(ch: Discord.GroupDMChannel | Discord.Guild) {
+    constructor(guild: Discord.Guild) {
         super();
-        this.environment = ch;
-        this.id = `${this.type}_${ch.id}`;
+        this.guild = guild;
         this.prefixes = ['!'];
-    }
-
-    static getType(ch: Discord.GroupDMChannel | Discord.Guild): ChatType {
-        return ch instanceof Discord.Guild ? "guild" : "groupdm";
-    }
-
-    static getId(ch: Discord.GroupDMChannel | Discord.Guild): string {
-        return `${this.getType(ch)}_${ch.id}`;
+        this.accounts = {};
     }
 
     hasPrefix(pref: string): boolean {
@@ -39,27 +22,43 @@ export class Chat extends DataObject {
         return false;
     }
 
+    getAccount(member: Discord.GuildMember | Discord.Message): Account {
+        if (member instanceof Discord.Message) {
+            member = member.member;
+        }
+
+        if (member.guild != this.guild) {
+            member = this.guild.member(member.user);
+            if (!member) throw new Error(`getAccount member.guild != this.guild`);
+        }
+
+        if (this.accounts[member.id] == undefined) {
+            this.accounts[member.id] = new Account(member);
+        }
+
+        return this.accounts[member.id];
+    }
+
     serialize(): {} {
         return {
-            "id": this.id,
+            "id": this.guild.id,
             "prefixes": this.prefixes,
-            "properties": super.serialize()
+            "properties": super.serialize(),
+            //"accounts": serializeAccounts(this)
         }
     }
 }
 
-var chats: { [id: string]: Chat }
+var guilds: { [id: string]: GuildData } = {}
 
-export function getChat(ch: Discord.GroupDMChannel | Discord.Guild) {
-    let id = Chat.getId(ch);
-
-    if (chats[id] == undefined) {
-        chats[id] = new Chat(ch);
+export function getGuildData(guild: Discord.Guild | Discord.GuildMember | Discord.Message): GuildData {
+    if (guild instanceof Discord.GuildMember || guild instanceof Discord.Message) {
+        guild = guild.guild;
     }
 
-    return chats[id];
-}
+    if (guilds[guild.id] == undefined) {
+        guilds[guild.id] = new GuildData(guild);
+    }
 
-export function getPrefixes(ch: Discord.GroupDMChannel | Discord.Guild): string[] {
-    return getChat(ch).prefixes;
+    return guilds[guild.id];
 }

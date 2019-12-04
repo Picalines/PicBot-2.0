@@ -29,28 +29,30 @@ export class DataObject<TProp = string | number | boolean> implements ISerialize
         this.properties = [];
     }
 
-    getProperty(name: string, defaultValue?: TProp): Property<TProp> | undefined {
+    getProperty<Type extends TProp=TProp>(name: string, defaultValue?: Type): Property<Type> | undefined {
         for (let i in this.properties) {
             let p = this.properties[i];
             if (p.name == name) {
-                return p;
+                return p as Property<Type>;
             }
         }
-        if (defaultValue) {
+        if (defaultValue != undefined) {
             this.properties.push(new Property(name, defaultValue));
-            return this.properties[this.properties.length-1];
+            return this.properties[this.properties.length-1] as Property<Type>;
         }
         return undefined;
     }
 
-    setProperty(name: string, value: TProp) {
-        const existingProp = this.getProperty(name);
-        if (existingProp) {
-            existingProp.value = value;
+    setProperty(name: string, value: TProp): Property<TProp> {
+        for (let i in this.properties) {
+            let p = this.properties[i];
+            if (p.name == name) {
+                p.value = value;
+                return p;
+            }
         }
-        else {
-            this.properties.push(new Property(name, value));
-        }
+        this.properties.push(new Property(name, value));
+        return this.properties[this.properties.length-1];
     }
 
     removeProperty(name: string) {

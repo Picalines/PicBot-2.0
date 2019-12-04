@@ -22,36 +22,3 @@ export class Account extends DataObject<AccountPropertyType> implements ISeriali
         }
     }
 }
-
-var accounts: { [guild: string]: { [id: string]: Account } }
-
-export function getAccount(member: Discord.GuildMember): Account {
-    if (member == null) throw new Error("getAccount member argument is null");
-    
-    if (accounts[member.guild.id] == undefined) {
-        accounts[member.guild.id] = {}
-    }
-
-    if (accounts[member.guild.id][member.id] == undefined) {
-        accounts[member.guild.id][member.id] = new Account(member);
-    }
-    
-    return accounts[member.guild.id][member.id];
-}
-
-export function deleteAccount(member: Discord.GuildMember) {
-    if (member == null || accounts[member.guild.id] == undefined) return;
-    delete accounts[member.guild.id][member.id];
-}
-
-export function serializeAccounts(guild: Discord.Guild): {}[] {
-    if (guild == null || accounts[guild.id] == undefined) return [];
-    let accs: {}[] = [];
-
-    for (let i in accounts[guild.id]) {
-        let acc = accounts[guild.id][i];
-        accs.push(acc.serialize());
-    }
-
-    return accs;
-}
