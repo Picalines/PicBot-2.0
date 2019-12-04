@@ -1,10 +1,15 @@
 import { ISerializeable } from "./utils";
 
-export class Property<TType> implements ISerializeable {
-    name: string
-    value: TType;
+export interface IProperty<Type> {
+    name: string;
+    value: Type;
+}
 
-    constructor(name: string, value: TType) {
+export class Property<Type> implements IProperty<Type>, ISerializeable {
+    name: string
+    value: Type;
+
+    constructor(name: string, value: Type) {
         this.name = name;
         this.value = value;
     }
@@ -49,6 +54,13 @@ export class DataObject<TProp = string | number | boolean> implements ISerialize
         if (prop) {
             delete this.properties[this.properties.indexOf(prop)];
         }
+    }
+
+    hasProperty(name: string): boolean {
+        for (let i in this.properties) {
+            if (this.properties[i].name == name) return true;
+        }
+        return false;
     }
 
     serialize(): {} {

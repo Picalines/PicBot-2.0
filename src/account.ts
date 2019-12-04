@@ -1,27 +1,57 @@
+import { DataObject, IProperty } from "./property";
 import { ISerializeable } from "./utils";
-import { Property, DataObject } from "./property";
 import * as Discord from "discord.js";
-import { bot } from "./main";
 
-export class Account extends DataObject implements ISerializeable {
-    readonly user: Discord.User | null;
+type AccountPropertyType = string | number | boolean;
 
-    constructor(user: Discord.User | Discord.GuildMember | null) {
+export class Account extends DataObject<AccountPropertyType> implements ISerializeable {
+    member: Discord.GuildMember | null;
+
+    constructor(member: Discord.GuildMember | null, properties?: IProperty<AccountPropertyType>[]) {
         super();
-        this.user = user instanceof Discord.GuildMember ? user.user : user;
-    }
-
-    static async load(from: string): Promise<any> {
-        let data = JSON.parse(from);
-        let acc = new Account(data.id && data.id != "unknown" ? await bot.fetchUser(data.id) : null);
-        data.properties.forEach((p: Property<string | number>) => acc.setProperty(p.name, p.value));
-        return acc;
+        this.member = member;
+        if (properties) {
+            properties.forEach(p => this.setProperty(p.name, p.value));
+        }
     }
 
     serialize() {
         return {
-            "id": this.user != null ? this.user.id : "unknown",
+            "id": this.member != null ? this.member.id : "unknown",
             "properties": (super.serialize() as any).properties
         }
     }
+}
+
+var accounts: { [guild: string]: { [id: string]: Account } }
+
+export function getAccount(member: Discord.GuildMember): Account {
+    if (member == null) throw new Error("getAccount member argument is null");
+    
+    if (accounts[member.guild.id] == undefined) {
+        accounts[member.guild.id] = {}
+    }
+
+    if (accounts[member.guild.id][member.id] == undefined) {
+        accounts[member.guild.id][member.id] = new Account(member);
+    }
+    
+    return accounts[member.guild.id][member.id];
+}
+
+export function deleteAccount(member: Discord.GuildMember) {
+    if (member == null || accounts[member.guild.id] == undefined) return;
+    delete accounts[member.guild.id][member.id];
+}
+
+export function serializeAccounts(guild: Discord.Guild): {}[] {
+    if (guild == null || accounts[guild.id] == undefined) return [];
+    let accs: {}[] = [];
+
+    for (let i in accounts[guild.id]) {
+        let acc = accounts[guild.id][i];
+        accs.push(acc.serialize());
+    }
+
+    return accs;
 }
