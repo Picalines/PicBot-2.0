@@ -1,24 +1,33 @@
-import { DataObject, IProperty } from "./property";
+import { DataObject, IProperty, Property } from "./property";
 import { ISerializeable } from "./utils";
 import * as Discord from "discord.js";
+import { getGuildData } from "./guildData";
 
-type AccountPropertyType = string | number | boolean;
+export interface IAccountData {
+    readonly id: string;
+    readonly properties: IProperty[];
+}
 
-export class Account extends DataObject<AccountPropertyType> implements ISerializeable {
+export class Account extends DataObject implements IAccountData, ISerializeable {
     member: Discord.GuildMember | null;
 
-    constructor(member: Discord.GuildMember | null, properties?: IProperty<AccountPropertyType>[]) {
-        super();
-        this.member = member;
-        if (properties) {
-            properties.forEach(p => this.setProperty(p.name, p.value));
-        }
+    get id(): string {
+        return this.member != null ? this.member.id : "unknown";
     }
 
-    serialize() {
+    constructor(member: Discord.GuildMember | null, properties?: IProperty[]) {
+        super(properties);
+        this.member = member;
+    }
+
+    serialize(): IAccountData {
         return {
             "id": this.member != null ? this.member.id : "unknown",
-            "properties": super.serialize()
+            "properties": super.serialize() as IProperty[]
         }
     }
+}
+
+export function getAccount(member: Discord.GuildMember | Discord.Message): Account {
+    return getGuildData(member).getAccount(member instanceof Discord.Message ? member.member : member);
 }

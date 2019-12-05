@@ -26,7 +26,7 @@ export async function loadCommands() {
     }
 
     if (!(await fs.existsAsync(commandsFolderPath))) {
-        await fs.mkdir(commandsFolderPath);
+        await fs.mkdirAsync(commandsFolderPath);
     }
 
     var files = await fs.readdirAsync(commandsFolderPath);

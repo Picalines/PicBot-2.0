@@ -1,5 +1,8 @@
 import { loadCommands } from "./command";
+import { getAccount } from "./account";
+import * as database from "./database";
 import * as Discord from "discord.js";
+import { Property } from "./property";
 import * as dotenv from "dotenv";
 import { Debug } from "./debug";
 import { delay } from "./utils";
@@ -20,6 +23,13 @@ else {
 bot.on("ready", async () => {
     Debug.Log("Successfully logged in discord!");
     await loadCommands();
+    await database.load();
+});
+
+bot.on("message", async msg => {
+    if (msg.member.user.bot) return;
+    let xpProp = getAccount(msg).getProperty("xp", 0) as Property<number>;
+    xpProp.value += 1;
 });
 
 // #region error & close events
@@ -27,6 +37,7 @@ bot.on("ready", async () => {
 async function backup() {
     Debug.Log("backup...");
     await Debug.Save();
+    await database.save();
 }
 
 bot.on("error", async err => {

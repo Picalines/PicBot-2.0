@@ -1,11 +1,13 @@
 import { ISerializeable } from "./utils";
 
-export interface IProperty<Type> {
+export type DefaultPropertyType = string | number | boolean
+
+export interface IProperty<Type = DefaultPropertyType> {
     name: string;
     value: Type;
 }
 
-export class Property<Type> implements IProperty<Type>, ISerializeable {
+export class Property<Type = DefaultPropertyType> implements IProperty<Type>, ISerializeable {
     name: string
     value: Type;
 
@@ -14,7 +16,7 @@ export class Property<Type> implements IProperty<Type>, ISerializeable {
         this.value = value;
     }
     
-    serialize(): {} {
+    serialize(): IProperty<Type> {
         return {
             "name": this.name,
             "value": this.value
@@ -22,11 +24,21 @@ export class Property<Type> implements IProperty<Type>, ISerializeable {
     }
 }
 
-export class DataObject<TProp = string | number | boolean> implements ISerializeable {
+export function deserializeProperty<T>(data: any): Property<T> {
+    if (data != undefined) {
+        return new Property<T>(String(data.name), data.value);
+    }
+    throw new Error("invalid property data");
+}
+
+export class DataObject<TProp = DefaultPropertyType> implements ISerializeable {
     readonly properties: Property<TProp>[];
 
-    constructor() {
+    constructor(props?: IProperty<TProp>[]) {
         this.properties = [];
+        if (props != undefined) {
+            props.forEach(p => this.properties.push(deserializeProperty(p)))
+        }
     }
 
     getProperty<Type extends TProp=TProp>(name: string, defaultValue?: Type): Property<Type> | undefined {
@@ -70,7 +82,7 @@ export class DataObject<TProp = string | number | boolean> implements ISerialize
     }
 
     serialize(): {} {
-        let props: {}[] = []
+        let props: IProperty<TProp>[] = []
         this.properties.forEach(p => props.push(p.serialize()))
         return props;
     }
