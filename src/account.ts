@@ -1,7 +1,7 @@
-import { DataObject, IProperty, Property } from "./property";
+import { DataObject, IProperty } from "./property";
+import { getGuildData } from "./guildData";
 import { ISerializeable } from "./utils";
 import * as Discord from "discord.js";
-import { getGuildData } from "./guildData";
 
 export interface IAccountData {
     readonly id: string;

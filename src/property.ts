@@ -1,22 +1,22 @@
 import { ISerializeable } from "./utils";
 
-export type DefaultPropertyType = string | number | boolean
+export type PropertyType = number | string | boolean;
 
-export interface IProperty<Type = DefaultPropertyType> {
+export interface IProperty<T extends PropertyType = PropertyType> {
     name: string;
-    value: Type;
+    value: T;
 }
 
-export class Property<Type = DefaultPropertyType> implements IProperty<Type>, ISerializeable {
-    name: string
-    value: Type;
+export class Property<T extends PropertyType = PropertyType> implements IProperty<T>, ISerializeable {
+    name: string;
+    value: T;
 
-    constructor(name: string, value: Type) {
+    constructor(name: string, value: T) {
         this.name = name;
         this.value = value;
     }
     
-    serialize(): IProperty<Type> {
+    serialize(): IProperty<T> {
         return {
             "name": this.name,
             "value": this.value
@@ -24,47 +24,49 @@ export class Property<Type = DefaultPropertyType> implements IProperty<Type>, IS
     }
 }
 
-export function deserializeProperty<T>(data: any): Property<T> {
+export function deserializeProperty<T extends PropertyType>(data: any): Property<T> {
     if (data != undefined) {
         return new Property<T>(String(data.name), data.value);
     }
     throw new Error("invalid property data");
 }
 
-export class DataObject<TProp = DefaultPropertyType> implements ISerializeable {
-    readonly properties: Property<TProp>[];
+export class DataObject implements ISerializeable {
+    readonly properties: Property<PropertyType>[];
 
-    constructor(props?: IProperty<TProp>[]) {
+    constructor(props?: IProperty<PropertyType>[]) {
         this.properties = [];
         if (props != undefined) {
             props.forEach(p => this.properties.push(deserializeProperty(p)))
         }
     }
 
-    getProperty<Type extends TProp=TProp>(name: string, defaultValue?: Type): Property<Type> | undefined {
+    getProperty<T extends PropertyType>(name: string, defaultValue: T): Property<T>;
+    getProperty<T extends PropertyType>(name: string, defaultValue?: T): Property<T> | undefined;
+    getProperty<T extends PropertyType>(name: string, defaultValue: any): any {
         for (let i in this.properties) {
             let p = this.properties[i];
-            if (p.name == name) {
-                return p as Property<Type>;
+            if (p.name == name && p) {
+                return p as Property<T>;
             }
         }
         if (defaultValue != undefined) {
             this.properties.push(new Property(name, defaultValue));
-            return this.properties[this.properties.length-1] as Property<Type>;
+            return this.properties[this.properties.length-1] as Property<T>;
         }
-        return undefined;
+        throw new Error(`Property '${name}' is not defined`);
     }
 
-    setProperty(name: string, value: TProp): Property<TProp> {
+    setProperty<T extends PropertyType>(name: string, value: T): Property<T> {
         for (let i in this.properties) {
             let p = this.properties[i];
             if (p.name == name) {
                 p.value = value;
-                return p;
+                return p as Property<T>;
             }
         }
         this.properties.push(new Property(name, value));
-        return this.properties[this.properties.length-1];
+        return this.properties[this.properties.length-1] as Property<T>;
     }
 
     removeProperty(name: string) {
@@ -82,7 +84,7 @@ export class DataObject<TProp = DefaultPropertyType> implements ISerializeable {
     }
 
     serialize(): {} {
-        let props: IProperty<TProp>[] = []
+        let props: IProperty<PropertyType>[] = []
         this.properties.forEach(p => props.push(p.serialize()))
         return props;
     }
