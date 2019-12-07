@@ -22,9 +22,9 @@ export abstract class Command {
 export const commandTokenizer = new Tokenizer({
     "string": /".*?"/,
     "space": /\s+/,
-    "float": /(\d+)(\.(\d)+)?/g,
+    "float": /(\d+)\.(\d+)/g,
     "int": /(\d+)/g,
-    "word": /.+/
+    "word": /\w+/
 });
 
 export const commands: Command[] = [];

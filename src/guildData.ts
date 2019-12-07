@@ -98,6 +98,10 @@ export function deserializeGuildData(data: any): GuildData {
                 }
             }
 
+            if (data.prefixes != undefined && typeof data.prefixes == "object") {
+                guildData.prefixes = data.prefixes;
+            }
+
             return guildData;
         }
     }

@@ -1,11 +1,10 @@
 import { loadCommands, findCommand, commandTokenizer } from "./command";
-import { getAccount } from "./account";
+import { delay, Enumerator } from "./utils";
+import { getGuildData } from "./guildData";
 import * as database from "./database";
 import * as Discord from "discord.js";
 import * as dotenv from "dotenv";
 import { Debug } from "./debug";
-import { delay, Enumerator } from "./utils";
-import { getGuildData } from "./guildData";
 
 if (process.env.NODE_ENV !== 'production') {
     dotenv.config();
@@ -39,11 +38,10 @@ bot.on("message", async msg => {
 
         if (msg.content.startsWith(prefix)) {
             let noPrefixContent = msg.content.slice(prefix.length);
-            console.log(noPrefixContent);
             let command = findCommand(c => noPrefixContent.startsWith(c.info.name));
             if (command != undefined) {
                 let input = noPrefixContent.slice(command.info.name.length);
-                let inputTokens = commandTokenizer.tokenize(input);
+                let inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
                 await command.run(msg, new Enumerator(inputTokens));
             }
 
