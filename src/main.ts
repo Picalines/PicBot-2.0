@@ -1,10 +1,11 @@
-import { loadCommands } from "./command";
+import { loadCommands, findCommand, commandTokenizer } from "./command";
 import { getAccount } from "./account";
 import * as database from "./database";
 import * as Discord from "discord.js";
 import * as dotenv from "dotenv";
 import { Debug } from "./debug";
-import { delay } from "./utils";
+import { delay, Enumerator } from "./utils";
+import { getGuildData } from "./guildData";
 
 if (process.env.NODE_ENV !== 'production') {
     dotenv.config();
@@ -13,22 +14,42 @@ if (process.env.NODE_ENV !== 'production') {
 export const bot = new Discord.Client();
 
 if (process.env.DISCORD_TOKEN) {
-    bot.login(process.env.DISCORD_TOKEN);
+    Debug.Log("Logging in discord...");
+    bot.login(process.env.DISCORD_TOKEN).then(() => Debug.Log("Successfully logged in discord!"));
 }
 else {
     throw new Error("discord token is undefined");
 }
 
 bot.on("ready", async () => {
-    Debug.Log("Successfully logged in discord!");
     await loadCommands();
     await database.load();
 });
 
 bot.on("message", async msg => {
     if (msg.member.user.bot) return;
-    let xpProp = getAccount(msg).getProperty("xp", 0);
-    xpProp.value += 1;
+
+    let guildData = getGuildData(msg);
+    let acc = guildData.getAccount(msg.member);
+
+    acc.getProperty("xp", 0).value += 1;
+
+    for (let i in guildData.prefixes) {
+        let prefix = guildData.prefixes[i];
+
+        if (msg.content.startsWith(prefix)) {
+            let noPrefixContent = msg.content.slice(prefix.length);
+            console.log(noPrefixContent);
+            let command = findCommand(c => noPrefixContent.startsWith(c.info.name));
+            if (command != undefined) {
+                let input = noPrefixContent.slice(command.info.name.length);
+                let inputTokens = commandTokenizer.tokenize(input);
+                await command.run(msg, new Enumerator(inputTokens));
+            }
+
+            break
+        }
+    }
 });
 
 // #region error & close events
@@ -58,7 +79,9 @@ bot.on("reconnecting", () => {
 
 async function onClose(exit: boolean) {
     Debug.Log("turning off the bot...");
-    await backup();
+    if (bot.readyAt) {
+        await backup();
+    }
     await bot.destroy();
     Debug.Log("program closed");
     if (exit) {

@@ -41,7 +41,7 @@ export class DataObject implements ISerializeable {
         }
     }
 
-    getProperty<T extends PropertyType>(name: string, defaultValue: T): Property<T>;
+    getProperty<T extends PropertyType>(name: string, defaultValue: T): Property<T>
     getProperty<T extends PropertyType>(name: string, defaultValue?: T): Property<T> | undefined;
     getProperty<T extends PropertyType>(name: string, defaultValue: any): any {
         for (let i in this.properties) {
@@ -54,7 +54,7 @@ export class DataObject implements ISerializeable {
             this.properties.push(new Property(name, defaultValue));
             return this.properties[this.properties.length-1] as Property<T>;
         }
-        throw new Error(`Property '${name}' is not defined`);
+        return undefined;
     }
 
     setProperty<T extends PropertyType>(name: string, value: T): Property<T> {

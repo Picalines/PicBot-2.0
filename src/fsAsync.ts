@@ -12,3 +12,9 @@ export const mkdirAsync = promisify(fs.mkdir);
 export const lstatAsync = promisify(fs.lstat);
 
 export const isDirectory = async (path: string) => (await lstatAsync(path)).isDirectory();
+
+export async function checkFolderAsync(path: string) {
+    if (!(await existsAsync(path))) {
+        await mkdirAsync(path);
+    }
+}

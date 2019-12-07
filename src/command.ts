@@ -1,12 +1,14 @@
+import { readdirAsync } from "./fsAsync";
 import * as Discord from "discord.js";
-import { Token } from "./tokenizer";
-import * as fs from "./fsAsync";
+import { Enumerator } from "./utils";
+import { Token, Tokenizer } from "./tokenizer";
+import { Debug } from "./debug";
 
 export type CommandPermission = "everyone" | "admin" | "owner"
 
 export interface CommandInfo {
     readonly name: string;
-    readonly syntax: string;
+    readonly syntax?: string;
     readonly description: string;
     readonly permission: CommandPermission;
     readonly group?: string;
@@ -14,32 +16,45 @@ export interface CommandInfo {
 
 export abstract class Command {
     abstract info: CommandInfo;
-    abstract run(member: Discord.GuildMember, args: Enumerator<Token>): Promise<void>;
+    abstract run(msg: Discord.Message, argEnumerator: Enumerator<Token>): Promise<void>;
+}
+
+export const commandTokenizer = new Tokenizer({
+    "string": /".*?"/,
+    "space": /\s+/,
+    "float": /(\d+)(\.(\d)+)?/g,
+    "int": /(\d+)/g,
+    "word": /.+/
+});
+
+export const commands: Command[] = [];
+
+export function findCommand(predicator: (c: Command) => boolean): Command | undefined {
+    for (let i in commands) {
+        let c = commands[i];
+        if (predicator(c)) {
+            return c;
+        }
+    }
 }
 
 export const commandsFolderPath = `${__dirname}/commands/`;
-export const commands: Command[] = [];
 
 export async function loadCommands() {
-    while (commands[0]) {
+    Debug.Log("loading commands...");
+    while (commands.length > 0) {
         commands.pop();
     }
 
-    if (!(await fs.existsAsync(commandsFolderPath))) {
-        await fs.mkdirAsync(commandsFolderPath);
-    }
-
-    var files = await fs.readdirAsync(commandsFolderPath);
-    files.filter(f => f.endsWith(".ts")).forEach(file => {
-        const fmodule = require(file);
-        for (let exp in fmodule) {
-            const exval = fmodule[exp];
-            if (exval instanceof Function) {
-                const c = new exval();
-                if (c instanceof Command) {
-                    commands.push(c);
-                }
+    let files = (await readdirAsync(commandsFolderPath)).filter(f => f.endsWith(".js"));
+    files.forEach(f => {
+        Debug.Log(`loading '${f}'...`);
+        let cmodule = require(commandsFolderPath + f);
+        for (let k in cmodule) {
+            if ((k == "default" || k.endsWith("Command")) && cmodule[k] instanceof Function) {
+                commands.push(new cmodule[k]());
             }
         }
     });
+    Debug.Log("commands successfully loaded");
 }
