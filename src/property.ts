@@ -1,3 +1,4 @@
+import { DeserializationError } from "./error";
 import { ISerializeable } from "./utils";
 
 export type PropertyType = number | string | boolean;
@@ -28,7 +29,7 @@ export function deserializeProperty<T extends PropertyType>(data: any): Property
     if (data != undefined) {
         return new Property<T>(String(data.name), data.value);
     }
-    throw new Error("invalid property data");
+    throw new DeserializationError("invalid property data");
 }
 
 export class DataObject implements ISerializeable {

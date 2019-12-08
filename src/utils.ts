@@ -1,3 +1,8 @@
+import { Token } from "./tokenizer";
+import { GuildMember, Guild } from "discord.js";
+import { GuildData } from "./guildData";
+import { commandTokenizer, ArgumentType } from "./command";
+
 export function delay(ms: number) {
     return new Promise(res => setTimeout(res, ms));
 }
@@ -43,4 +48,29 @@ export class Enumerator<T> {
         }
         return false;
     }
+}
+
+export function getMemberFromMention(guild: Guild | GuildData, mention: string | Token<ArgumentType>): GuildMember | null {
+    if (guild instanceof GuildData) {
+        guild = guild.guild;
+    }
+
+    let id: string;
+    if (typeof mention == "string") {
+        let match = mention.match(commandTokenizer.getRegex("user"));
+        if (match == null) {
+            return null;
+        }
+
+        id = match[0].slice(2).replace(">", "");
+    }
+    else {
+        if (mention.type != "user") {
+            return null;
+        }
+        
+        id = mention.value.slice(2).replace(">", "");
+    }
+
+    return guild.member(id);
 }

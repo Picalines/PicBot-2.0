@@ -1,8 +1,10 @@
+import { NullReferenceError, DeserializationError, MemberIsBot } from "./error";
 import { Account, IAccountData } from "./account";
 import { DataObject, Property } from "./property";
 import * as Discord from "discord.js";
 import { nameof } from "./utils";
 import { bot } from "./main";
+import { Debug } from "./debug";
 
 export class GuildData extends DataObject {
     readonly guild: Discord.Guild;
@@ -34,7 +36,10 @@ export class GuildData extends DataObject {
 
     getAccount(member: Discord.GuildMember): Account {
         if (member == null) {
-            throw new Error("getAccount member is null");
+            throw new NullReferenceError("member");
+        }
+        if (member.user.bot) {
+            throw new MemberIsBot(member.toString());
         }
 
         member = this.checkMemberGuild(member, nameof<GuildData>("getAccount"))
@@ -46,11 +51,13 @@ export class GuildData extends DataObject {
         return this.accounts[member.id];
     }
 
-    setAccount(data: IAccountData) {
+    setAccount(data: IAccountData): boolean {
         let member = this.guild.member(data.id);
-        if (member != null) {
+        if (member != null && !member.user.bot && member.guild == this.guild) {
             this.accounts[member.id] = new Account(member, data.properties);
+            return true;
         }
+        return false;
     }
 
     serializeAccounts(): IAccountData[] {
@@ -94,7 +101,9 @@ export function deserializeGuildData(data: any): GuildData {
             if (data.accounts != undefined) {
                 for (let j in data.accounts) {
                     let acc: IAccountData = data.accounts[j];
-                    guildData.setAccount(acc);
+                    if (!guildData.setAccount(acc)) {
+                        Debug.Log(`account data #${j} (${acc.id}) ignored`, "warning");
+                    }
                 }
             }
 
@@ -105,5 +114,5 @@ export function deserializeGuildData(data: any): GuildData {
             return guildData;
         }
     }
-    throw new Error("invalid guild data argument");
+    throw new DeserializationError("invalid guild data argument");
 }

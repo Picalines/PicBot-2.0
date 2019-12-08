@@ -4,11 +4,18 @@ import { Enumerator } from "./utils";
 import { Token, Tokenizer } from "./tokenizer";
 import { Debug } from "./debug";
 
-export type CommandPermission = "everyone" | "admin" | "owner"
+export type CommandPermission = "everyone" | "admin" | "owner";
+
+export type ArgumentType = "space" | "user" | "role" | "channel" | "everyone" | "here" | "string" | "float" | "int" | "word";
+
+export interface SyntaxArgument {
+    [0]: ArgumentType,
+    [1]?: boolean;
+}
 
 export interface CommandInfo {
     readonly name: string;
-    readonly syntax?: string;
+    readonly syntax?: SyntaxArgument[];
     readonly description: string;
     readonly permission: CommandPermission;
     readonly group?: string;
@@ -19,16 +26,19 @@ export abstract class Command {
     abstract run(msg: Discord.Message, argEnumerator: Enumerator<Token>): Promise<void>;
 }
 
-export type ArgumentType = "space" | "string" | "float" | "int" | "word";
-
 export type ArgumentEnumerator = Enumerator<Token<ArgumentType>>;
 
 export const commandTokenizer = new Tokenizer<ArgumentType>({
-    "string": /".*?"/,
-    "space": /\s+/,
-    "float": /(\d+)\.(\d+)/g,
-    "int": /(\d+)/g,
-    "word": /\w+/
+    string: /".*?"/,
+    space: /\s+/,
+    user: /<@\d+>/g,
+    role: /<@&\d+>/g,
+    channel: /<#\d+>/g,
+    everyone: /@everyone/g,
+    here: /@here/g,
+    float: /(\d+)\.(\d+)/g,
+    int: /(\d+)/g,
+    word: /\w+/
 });
 
 

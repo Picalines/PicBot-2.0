@@ -42,7 +42,17 @@ bot.on("message", async msg => {
             if (command != undefined) {
                 let input = noPrefixContent.slice(command.info.name.length);
                 let inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
-                await command.run(msg, new Enumerator(inputTokens));
+
+                try {
+                    await command.run(msg, new Enumerator(inputTokens));
+                }
+                catch (err) {
+                    let errorEmbed = new Discord.RichEmbed();
+                    errorEmbed.setTitle(`**Произошла ошибка**`);
+                    errorEmbed.setColor("#FF0000");
+                    errorEmbed.setDescription(err.message + " :/");
+                    await msg.channel.send(errorEmbed);
+                }
             }
 
             break
