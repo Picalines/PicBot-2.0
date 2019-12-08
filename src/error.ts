@@ -6,7 +6,12 @@ export class SyntaxError extends Error {
         if (!(token instanceof Token)) {
             token = token.current;
         }
-        super(`синтаксическая ошибка на слове '${token.value}': ${message}`);
+        if (token != undefined) {
+            super(`синтаксическая ошибка на слове '${token.value}': ${message}`);
+        }
+        else {
+            super(`синтаксическая ошибка: ${message}`);
+        }
         this.name = "SyntaxError";
     }
 }

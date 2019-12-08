@@ -5,7 +5,6 @@ import { bot } from "./main";
 
 export const databaseFolderPath = "./database/";
 export const guildsFolderPath = databaseFolderPath + "guilds/";
-export const assetsFolderPath = databaseFolderPath + "assets/";
 
 export async function load() {
     Debug.Log("loading database...");
@@ -48,28 +47,6 @@ export async function saveGuilds() {
         await fs.writeFileAsync(guildsFolderPath + guild.guild.id + ".json", serialized);
     }
     Debug.Log("guilds data successfully saved");
-}
-
-// #endregion
-
-// #region assets
-
-export async function readAsset(path: string, defaultData?: string): Promise<string> {
-    path = assetsFolderPath + path;
-    if (!(await fs.existsAsync(path))) {
-        if (defaultData != undefined) {
-            await fs.writeFileAsync(path, defaultData);
-        }
-        else {
-            throw new Error(`Asset '${path}' not found`);
-        }
-    }
-
-    return (await fs.readFileAsync(path)).toString();
-}
-
-export async function readAssetObject(path: string, defaultData?: {}): Promise<{}> {
-    return JSON.parse(await readAsset(path, JSON.stringify(defaultData)));
 }
 
 // #endregion
