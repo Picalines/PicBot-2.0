@@ -19,13 +19,18 @@ export abstract class Command {
     abstract run(msg: Discord.Message, argEnumerator: Enumerator<Token>): Promise<void>;
 }
 
-export const commandTokenizer = new Tokenizer({
+export type ArgumentType = "space" | "string" | "float" | "int" | "word";
+
+export type ArgumentEnumerator = Enumerator<Token<ArgumentType>>;
+
+export const commandTokenizer = new Tokenizer<ArgumentType>({
     "string": /".*?"/,
     "space": /\s+/,
     "float": /(\d+)\.(\d+)/g,
     "int": /(\d+)/g,
     "word": /\w+/
 });
+
 
 export const commands: Command[] = [];
 

@@ -1,8 +1,6 @@
-import { Command, CommandInfo } from "../command";
+import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { Message, RichEmbed } from "discord.js";
 import { getAccount } from "../account";
-import { Enumerator } from "../utils";
-import { Token } from "../tokenizer";
 
 export class StatsCommand extends Command {
     info: CommandInfo = {
@@ -11,7 +9,7 @@ export class StatsCommand extends Command {
         permission: "everyone"
     };
 
-    async run(msg: Message, argEnumerator: Enumerator<Token>) {
+    async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         let acc = getAccount(msg);
         let xp = acc.getProperty("xp", 0).value;
         await msg.reply(`Твой xp: ${xp}`);
