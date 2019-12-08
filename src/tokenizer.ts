@@ -66,4 +66,8 @@ export class Tokenizer<T extends string = string> {
         }
         return null;
     }
+
+    getRegex(tokenType: T): RegExp {
+        return (this.tokenDefs.find(t => t.type == tokenType) as TokenDefinition<T>).regex;
+    }
 }
