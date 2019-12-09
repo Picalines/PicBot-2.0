@@ -4,7 +4,7 @@ import { Token } from "./tokenizer";
 export class SyntaxError extends Error {
     constructor(token: Token<ArgumentType> | ArgumentEnumerator, message: string) {
         if (!(token instanceof Token)) {
-            token = token.current;
+            token = token.current();
         }
         if (token != undefined) {
             super(`синтаксическая ошибка на слове '${token.value}': ${message}`);

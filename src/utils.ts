@@ -25,7 +25,7 @@ export class Enumerator<T> {
         }
     }
 
-    get current(): T {
+    current(): T {
         return this.collection[this.index];
     }
 

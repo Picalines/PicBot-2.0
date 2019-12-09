@@ -40,6 +40,11 @@ bot.on("message", async msg => {
             let noPrefixContent = msg.content.slice(prefix.length);
             let command = findCommand(c => noPrefixContent.startsWith(c.info.name));
             if (command != undefined) {
+                if (!command.checkPermission(msg.member)) {
+                    await msg.reply("ты не можешь использовать эту команду :/");
+                    return;
+                }
+
                 let input = noPrefixContent.slice(command.info.name.length);
                 let inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
 

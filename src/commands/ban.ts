@@ -1,20 +1,38 @@
 import { Message, RichEmbed, GuildMember, TextChannel } from "discord.js";
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
-import { delay } from "../utils";
+import { delay, getMemberFromMention } from "../utils";
+import { SyntaxError, MemberNotFound } from "../error";
 import { getGuildData } from "../guildData";
 
 export class BanCommand extends Command {
     info: CommandInfo = {
         name: "ban",
+        syntax: [["user", "member2ban"], ["string", "reason", false], ["int", "delaySec", false]],
         description: "банит участника сервера",
         permission: "admin"
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        
+        if (!argEnumerator.moveNext() || argEnumerator.current().type != "user") {
+            throw new SyntaxError(argEnumerator, "ожидалось упоминание неугодного участника сервера");
+        }
+
+        let member = getMemberFromMention(msg.guild, argEnumerator.current());
+        if (member == null) {
+            throw new MemberNotFound(argEnumerator.current().value);
+        } else if (member == msg.member) {
+            throw new Error("нельзя забанить самого себя");
+        }
+
+        let reason = this.readNextToken(argEnumerator, "string", "Ожидалась строка", "");
+        let delaySec = Number(this.readNextToken(argEnumerator, "int", "Ожидалось кол-во секунд", "0"));
+
+        if (!(await this.banMember(msg, member, msg.member, reason, delaySec))) {
+            await msg.reply(`Я не смог забанить ${member} :/`);
+        }
     }
 
-    async banMember(channel: TextChannel | Message, member: GuildMember, admin: GuildMember, reason: string = "", delaySec: number = 0, days?: number): Promise<boolean> {
+    async banMember(channel: TextChannel | Message, member: GuildMember, admin: GuildMember, reason: string = "", delaySec: number = 0): Promise<boolean> {
         if (channel instanceof Message) {
             if (!(channel.channel instanceof TextChannel)) return false;
             channel = channel.channel;
@@ -31,18 +49,14 @@ export class BanCommand extends Command {
         let banEmbed = new RichEmbed();
         banEmbed.setTitle("Информация о бане");
         banEmbed.setThumbnail(member.user.avatarURL);
-        banEmbed.setFooter(`Злодный админ: ${admin}`);
+        banEmbed.setFooter(`Злобный админ: ${admin.displayName}`, admin.user.avatarURL);
         banEmbed.setColor("#FF0000");
         banEmbed.addField("Жертва", member.toString());
         banEmbed.addField("Причина", reason);
 
-        if (days != undefined) {
-            banEmbed.addField("Кол-во дней", days);
-        }
-
         await channel.send(banEmbed);
 
-        if (delaySec > 0) {
+        if (!isNaN(delaySec) && delaySec > 0) {
             await channel.send(`${member}, у тебя есть ещё ${delaySec} секунд(ы) счастливой жизни на этом сервере ;)`);
             await delay(delaySec * 1000);
             if (!member.bannable) {
@@ -50,11 +64,9 @@ export class BanCommand extends Command {
             }
         }
 
-        await member.ban({ reason: reason, days: days });
+        await member.ban({ reason: reason });
         
-        if (days == undefined) {
-            getGuildData(channel.guild).deleteAccount(member);
-        }
+        getGuildData(channel.guild).deleteAccount(member);
 
         return true;
     }

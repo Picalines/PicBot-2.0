@@ -7,22 +7,22 @@ import { getGuildData } from "../guildData";
 export class WarnCommand extends Command {
     info: CommandInfo = {
         name: "warn",
-        syntax: [["user"]],
+        syntax: [["user", "member"]],
         description: "даёт предупреждение участнику сервера",
         permission: "admin"
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        if (!argEnumerator.moveNext() || argEnumerator.current.type != "user") {
+        if (!argEnumerator.moveNext() || argEnumerator.current().type != "user") {
             throw new SyntaxError(argEnumerator, `ожидалось упоминание участника сервера`);
         }
 
-        let member = getMemberFromMention(msg.guild, argEnumerator.current);
+        let member = getMemberFromMention(msg.guild, argEnumerator.current());
         if (member == null) {
-            throw new MemberNotFound(argEnumerator.current.value);
+            throw new MemberNotFound(argEnumerator.current().value);
         }
         if (member.user.bot) {
-            throw new MemberIsBot(argEnumerator.current.value);
+            throw new MemberIsBot(argEnumerator.current().value);
         }
 
         let guildData = getGuildData(msg);

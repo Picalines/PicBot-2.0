@@ -7,7 +7,7 @@ import { getAccount } from "../account";
 export class StatsCommand extends Command {
     info: CommandInfo = {
         name: "stats",
-        syntax: [["user", false]],
+        syntax: [["user", "member", false]],
         description: "бот пишет вашу статистику на сервере",
         permission: "everyone"
     };
@@ -15,18 +15,18 @@ export class StatsCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         let member: GuildMember | null;
         if (argEnumerator.moveNext()) {
-            if (argEnumerator.current.type != "user") {
+            if (argEnumerator.current().type != "user") {
                 throw new SyntaxError(argEnumerator, "ожидалось упоминание участника сервера");
             }
 
-            member = getMemberFromMention(msg.guild, argEnumerator.current);
+            member = getMemberFromMention(msg.guild, argEnumerator.current());
         }
         else {
             member = msg.member;
         }
 
         if (member == null) {
-            throw new MemberNotFound(argEnumerator.current.value);
+            throw new MemberNotFound(argEnumerator.current().value);
         }
 
         await msg.channel.send(this.createEmbed(member));
