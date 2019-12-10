@@ -65,6 +65,22 @@ bot.on("message", async msg => {
     }
 });
 
+bot.on("guildBanRemove", async (guild, user) => {
+    let ch = guild.systemChannel as Discord.TextChannel;
+    if (!ch) return;
+    await ch.send(`Осторожно! ${user.toString()} вышел на свободу!`);
+});
+
+bot.on("guildMemberAdd", async member => {
+    let ch = member.guild.systemChannel as Discord.TextChannel;
+    if (!ch) return;
+    await ch.send(`Здравствуй, *${member.displayName}*!`);
+});
+
+bot.on("guildMemberRemove", member => {
+    getGuildData(member).deleteAccount(member);
+});
+
 // #region error & close events
 
 async function backup() {
