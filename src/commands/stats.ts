@@ -35,7 +35,7 @@ export class StatsCommand extends Command {
 
         embed.addField("Опыт", xp);
         if (warns != undefined) {
-            embed.addField("*Подозрительность*", `Предупреждения: ${warns.value}`);
+            embed.addField("*Опасность*", `Предупреждения: ${warns.value}`);
         }
 
         return embed;
