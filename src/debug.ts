@@ -20,15 +20,17 @@ export abstract class Debug {
         let m = date + " - " + String(msg);
 
         switch (type) {
+            default: throw new Error(`unsupported log type '${type}'`);
+            case "event": break;
             case "error": m = "[ERROR] " + m;
             case "warning": m = "[WARNING] " + m;
         }
 
         console.log(m);
-        this.lastLogs += "\n" + m;
+        this.lastLogs += m + "\n";
     }
 
     static async Save() {
-        await fs.appendFileAsync(this.logsPath, this.lastLogs);
+        await fs.appendFileAsync(this.logsPath, this.lastLogs + "\n");
     }
 }

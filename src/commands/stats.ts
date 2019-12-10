@@ -13,17 +13,8 @@ export class StatsCommand extends Command {
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        let member: GuildMember | null;
-        if (argEnumerator.moveNext()) {
-            if (argEnumerator.current().type != "user") {
-                throw new SyntaxError(argEnumerator, "ожидалось упоминание участника сервера");
-            }
-
-            member = getMemberFromMention(msg.guild, argEnumerator.current());
-        }
-        else {
-            member = msg.member;
-        }
+        let mention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера", "none");
+        let member = mention != "none" ? getMemberFromMention(msg.guild, mention) : msg.member;
 
         if (member == null) {
             throw new MemberNotFound(argEnumerator.current().value);
