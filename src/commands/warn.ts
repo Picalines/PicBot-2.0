@@ -1,8 +1,9 @@
 import { Command, CommandInfo, ArgumentEnumerator, findCommand } from "../command";
-import { Message, RichEmbed } from "discord.js";
 import { SyntaxError, MemberNotFound, MemberIsBot } from "../error";
 import { getMemberFromMention } from "../utils";
+import { Message, RichEmbed } from "discord.js";
 import { getGuildData } from "../guildData";
+import { BanCommand } from "./ban";
 
 export class WarnCommand extends Command {
     info: CommandInfo = {
@@ -20,9 +21,12 @@ export class WarnCommand extends Command {
         let member = getMemberFromMention(msg.guild, argEnumerator.current());
         if (member == null) {
             throw new MemberNotFound(argEnumerator.current().value);
-        }
-        if (member.user.bot) {
+        } else if (member.user.bot) {
             throw new MemberIsBot(argEnumerator.current().value);
+        }
+
+        if (member.permissions.has("ADMINISTRATOR")) {
+            throw new Error("нельзя кинуть предупреждение администратору");
         }
 
         let guildData = getGuildData(msg);
@@ -34,10 +38,12 @@ export class WarnCommand extends Command {
         await msg.channel.send(`${msg.member} кинул предупреждение ${member} (${memberWarns.value}/${maxWarns})`);
 
         if (memberWarns.value >= maxWarns) {
-            
-        }
-        else {
+            let banCommand = findCommand(c => c.info.name == "ban") as BanCommand;
+            if (banCommand == undefined) {
+                throw new Error("в данный момент бот не имеет доступа к команде `ban`. Админы, делайте всё руками");
+            }
 
+            await banCommand.banMember(msg, member, msg.member, `Слишком много предупреждений (${memberWarns.value}/${maxWarns})`, 10);
         }
     }
 }
