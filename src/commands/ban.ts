@@ -9,7 +9,8 @@ export class BanCommand extends Command {
         name: "ban",
         syntax: [["user", "member2ban"], ["string", "reason", false], ["int", "delaySec", false]],
         description: "банит участника сервера",
-        permission: "admin"
+        permission: "admin",
+        group: "Администрирование"
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {

@@ -40,6 +40,19 @@ export abstract class Command {
         }
     }
 
+    static syntaxToString(syntax: SyntaxArgument[]): string {
+        let s = "";
+        for (let i in syntax) {
+            let arg = syntax[i];
+            let sarg = `${arg[1]}: ${arg[0]}`;
+            if (arg[2] == false) {
+                sarg = `[${sarg}]`;
+            }
+            s += sarg + " ";
+        }
+        return s.slice(0, -1);
+    }
+
     //dev utils
     protected readNextToken(argEnumerator: ArgumentEnumerator, type: ArgumentType, syntaxErrMsg: string, defaultValue?: string): string {
         if (!argEnumerator.moveNext()) {

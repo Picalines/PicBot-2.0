@@ -10,7 +10,8 @@ export class WarnCommand extends Command {
         name: "warn",
         syntax: [["user", "member"]],
         description: "даёт предупреждение участнику сервера",
-        permission: "admin"
+        permission: "admin",
+        group: "Администрирование"
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
