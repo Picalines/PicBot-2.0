@@ -1,13 +1,23 @@
-import { Token } from "./tokenizer";
-import { GuildMember, Guild } from "discord.js";
-import { GuildData } from "./guildData";
 import { commandTokenizer, ArgumentType } from "./command";
+import { GuildMember, Guild, RichEmbed } from "discord.js";
+import { GuildData } from "./guildData";
+import { Token } from "./tokenizer";
 
 export function delay(ms: number) {
     return new Promise(res => setTimeout(res, ms));
 }
 
 export const nameof = <T>(name: keyof T): string => name.toString();
+
+export function stringDiff(a: string, b: string){ 
+    let diff = "";
+    b.split('').forEach((char, i) => {
+        if (char != a.charAt(i)) {
+            diff += char;
+        }
+    });
+    return diff;
+}
 
 export interface ISerializeable {
     serialize(): {};
@@ -73,4 +83,12 @@ export function getMemberFromMention(guild: Guild | GuildData, mention: string |
     }
 
     return guild.member(id);
+}
+
+export function generateErrorEmbed(message: Error | string, includeSmile?: boolean): RichEmbed {
+    let errorEmbed = new RichEmbed();
+    errorEmbed.setTitle(`**Произошла ошибка**`);
+    errorEmbed.setColor("#FF0000");
+    errorEmbed.setDescription((message instanceof Error ? message.message : message) + (includeSmile != false ? " :/" : ""));
+    return errorEmbed;
 }

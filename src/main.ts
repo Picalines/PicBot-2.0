@@ -1,5 +1,5 @@
-import { loadCommands, findCommand, commandTokenizer } from "./command";
-import { delay, Enumerator } from "./utils";
+import { loadCommands, findCommand, commandTokenizer, Command } from "./command";
+import { delay, Enumerator, stringDiff, generateErrorEmbed } from "./utils";
 import { getGuildData } from "./guildData";
 import * as database from "./database";
 import * as Discord from "discord.js";
@@ -25,6 +25,17 @@ bot.on("ready", async () => {
     await database.load();
 });
 
+async function runCommand(msg: Discord.Message, content: string, command: Command) {
+    let input = content.slice(command.info.name.length);
+    let inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
+    try {
+        await command.run(msg, new Enumerator(inputTokens));
+    }
+    catch (err) {
+        await msg.reply(generateErrorEmbed(err));
+    }
+}
+
 bot.on("message", async msg => {
     if (msg.member.user.bot) return;
 
@@ -33,34 +44,65 @@ bot.on("message", async msg => {
 
     acc.getProperty("xp", 0).value += 1;
 
+    let prefix: string | undefined = undefined;
     for (let i in guildData.prefixes) {
-        let prefix = guildData.prefixes[i];
+        let p = guildData.prefixes[i];
+        if (msg.content.startsWith(p)) {
+            prefix = p;
+            break
+        }
+    }
 
-        if (msg.content.startsWith(prefix)) {
-            let noPrefixContent = msg.content.slice(prefix.length);
-            let command = findCommand(c => noPrefixContent.startsWith(c.info.name));
-            if (command != undefined) {
-                if (!command.checkPermission(msg.member)) {
-                    await msg.reply("ты не можешь использовать эту команду :/");
-                    return;
-                }
+    if (prefix == undefined) return;
 
-                let input = noPrefixContent.slice(command.info.name.length);
-                let inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
+    let noPrefixContent = msg.content.slice(prefix.length);
 
-                try {
-                    await command.run(msg, new Enumerator(inputTokens));
-                }
-                catch (err) {
-                    let errorEmbed = new Discord.RichEmbed();
-                    errorEmbed.setTitle(`**Произошла ошибка**`);
-                    errorEmbed.setColor("#FF0000");
-                    errorEmbed.setDescription(err.message + " :/");
-                    await msg.channel.send(errorEmbed);
-                }
+    let cname = noPrefixContent.split(" ")[0] || "";
+    let nearest = ["", Number.MAX_SAFE_INTEGER];
+
+    let command = findCommand(c => {
+        let diff = stringDiff(cname, c.info.name);
+        if (diff.length < nearest[1]) {
+            nearest = [c.info.name, diff.length];
+        }
+        return cname == c.info.name;
+    });
+
+    if (command != undefined) {
+        if (!command.checkPermission(msg.member)) {
+            await msg.reply("ты не можешь использовать эту команду :/");
+            return;
+        }
+
+        await runCommand(msg, noPrefixContent, command);
+    }
+    else {
+        let errMsg = `Команда \`${cname}\` не найдена`;
+        if (nearest[1] > 2) {
+            await msg.reply(generateErrorEmbed(errMsg))
+            return;
+        }
+        
+        const fixEmoji = "🔧";
+        errMsg += `. Возможно вы имели в виду \`${nearest[0]}\`? Если да, то жми на ${fixEmoji}`;
+        
+        let rmsg = await msg.reply(generateErrorEmbed(errMsg, false)) as Discord.Message;
+        await rmsg.react(fixEmoji);
+        const filter = (r: any, u: any) => r.emoji.name == fixEmoji && u == msg.author
+        let collected = await rmsg.awaitReactions(filter, { time: 10000, max: 1 });
+        if (collected.size > 0) {
+            if (rmsg.deletable) {
+                await rmsg.delete();
+            }
+            
+            command = findCommand(c => c.info.name == nearest[0]);
+
+            if (command == undefined) {
+                await msg.reply(generateErrorEmbed("произошла неизвестная ошибка"));
+                return;
             }
 
-            break
+            await runCommand(msg, noPrefixContent, command);
         }
     }
 });
