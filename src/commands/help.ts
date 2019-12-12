@@ -1,5 +1,6 @@
-import { Command, CommandInfo, ArgumentEnumerator, commands } from "../command";
+import { Command, CommandInfo, ArgumentEnumerator, commands, findCommand } from "../command";
 import { Message, RichEmbed, GuildMember } from "discord.js";
+import { IAsset, getAsset } from "../database";
 
 interface CommandList {
     group: string;
@@ -16,6 +17,10 @@ function compareCommandList(a: CommandList, b: CommandList): number {
     return b.group.length - a.group.length;
 }
 
+interface IArgumentTypeAsset extends IAsset {
+    descriptions: { [name: string]: string };
+}
+
 export class HelpCommand extends Command {
     info: CommandInfo = {
         name: "help",
@@ -24,7 +29,8 @@ export class HelpCommand extends Command {
         permission: "everyone"
     };
 
-    private listEmbed: RichEmbed | undefined;
+    private typesHelp: RichEmbed | undefined;
+    private readonly argTypeArg = "argType";
 
     private generateList(member: GuildMember): RichEmbed {
         let grouped: { [group: string]: CommandList } = {};
@@ -52,7 +58,7 @@ export class HelpCommand extends Command {
 
         let embed = new RichEmbed();
         embed.setTitle("Список доступных команд");
-        embed.setColor("#00FF00");
+        embed.setColor("#00ff51");
 
         for (let g in groupedArr) {
             let s = "";
@@ -70,11 +76,50 @@ export class HelpCommand extends Command {
         return embed;
     }
 
-    async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        if (this.listEmbed == undefined) {
-            this.listEmbed = this.generateList(msg.member);
+    private async generateTypesHelp(): Promise<RichEmbed> {
+        let typeDesc = (await getAsset<IArgumentTypeAsset>("argumentType")).descriptions;
+
+        let embed = new RichEmbed();
+        embed.setTitle("Типы аргументов");
+        embed.setColor("#2eff70");
+
+        let s = "";
+        for (let t in typeDesc) {
+            s += `\`${t}\` - ${typeDesc[t]}\n`;
         }
 
-        await msg.reply(this.listEmbed);
+        return embed.setDescription(s);
+    }
+
+    private generateCommandHelp(info: CommandInfo): RichEmbed {
+        let embed = new RichEmbed();
+        embed.setTitle(`Информация о команде \`${info.name}\``);
+        embed.setColor("#2eff70");
+        embed.addField("Описание", info.description);
+        embed.addField("Аргументы", info.syntax != undefined ? Command.syntaxToString(info.syntax) : "*нету*");
+        embed.addField("Группа", info.group || "Другое");
+        return embed;
+    }
+
+    async run(msg: Message, argEnumerator: ArgumentEnumerator) {
+        let name = this.readNextToken(argEnumerator, "word", "Ожидалось имя команды", "__all_list");
+        if (name == "__all_list") {
+            await msg.channel.send(`${msg.member}, для помощи по типам аргументов юзай \`help ${this.argTypeArg}\``, this.generateList(msg.member));
+        }
+        else if (name == this.argTypeArg) {
+            if (this.typesHelp == undefined) {
+                this.typesHelp = await this.generateTypesHelp();
+            }
+            await msg.reply(this.typesHelp);
+        }
+        else {
+            let c = findCommand(cc => cc.info.name == name);
+            if (c != undefined) {
+                await msg.reply(this.generateCommandHelp(c.info));
+            }
+            else {
+                throw new Error(`Информация о команде '${name}' не найдена`);
+            }
+        }
     }
 }

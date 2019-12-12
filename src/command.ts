@@ -80,7 +80,7 @@ export const commandTokenizer = new Tokenizer<ArgumentType>({
     here: /@here/g,
     float: /(\d+)\.(\d+)/g,
     int: /(\d+)/g,
-    word: /\w+/
+    word: /[^ ]+/
 });
 
 
