@@ -1,10 +1,12 @@
 import { deserializeGuildData, guildsData } from "./guildData";
+import { PropertyType } from "./property";
 import * as fs from "./fsAsync";
 import { Debug } from "./debug";
 import { bot } from "./main";
 
 export const databaseFolderPath = "./database/";
 export const guildsFolderPath = databaseFolderPath + "guilds/";
+export const assetsFolderPath = databaseFolderPath + "assets/";
 
 export async function load() {
     Debug.Log("loading database...");
@@ -50,3 +52,29 @@ export async function saveGuilds() {
 }
 
 // #endregion
+
+export interface IAsset {
+    readonly [key: string]: PropertyType | IAsset;
+}
+
+var loadedAssets: { [name: string]: IAsset } = {};
+
+export async function getAsset<T extends IAsset = IAsset>(name: string): Promise<T> {
+    if (loadedAssets[name] != undefined) {
+        return loadedAssets[name] as T;
+    }
+
+    await fs.checkFolderAsync(databaseFolderPath);
+    await fs.checkFolderAsync(assetsFolderPath);
+
+    let path = assetsFolderPath + name + ".json";
+    if (!(await fs.existsAsync(path))) {
+        throw new Error(`Asset '${name}' not found`);
+    }
+
+    let data = (await fs.readFileAsync(path)).toString();
+    let asset = JSON.parse(data) as T;
+    loadedAssets[name] = asset;
+
+    return asset;
+}
