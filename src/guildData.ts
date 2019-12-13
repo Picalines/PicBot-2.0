@@ -100,13 +100,21 @@ export function getGuildData(guild: Discord.Guild | Discord.GuildMember | Discor
     return guildsData[guild.id];
 }
 
+export function deleteGuildData(guild: Discord.Guild): boolean {
+    if (guild != null) {
+        delete guildsData[guild.id];
+        return true;
+    }
+    return false;
+}
+
 export function deserializeGuildData(data: any): GuildData {
-    if (data != undefined && data.id != undefined) {
+    if (data?.id) {
         let guild = bot.guilds.find(g => g.id == data.id);
         if (guild != null) {
             let guildData = new GuildData(guild, data.properties);
 
-            if (data.accounts != undefined) {
+            if (data.accounts) {
                 for (let j in data.accounts) {
                     let acc: IAccountData = data.accounts[j];
                     if (!guildData.setAccount(acc)) {
@@ -115,7 +123,7 @@ export function deserializeGuildData(data: any): GuildData {
                 }
             }
 
-            if (data.prefixes != undefined && typeof data.prefixes == "object") {
+            if (typeof data.prefixes == "object") {
                 guildData.prefixes = data.prefixes;
             }
 

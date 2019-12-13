@@ -1,6 +1,6 @@
 import { loadCommands, findCommand, commandTokenizer, Command } from "./command";
 import { delay, Enumerator, stringDiff, generateErrorEmbed } from "./utils";
-import { getGuildData } from "./guildData";
+import { getGuildData, deleteGuildData } from "./guildData";
 import * as database from "./database";
 import * as Discord from "discord.js";
 import * as dotenv from "dotenv";
@@ -12,9 +12,22 @@ if (process.env.NODE_ENV !== 'production') {
 
 export const bot = new Discord.Client();
 
+export var botOwner: Discord.User | undefined = undefined;
+
 if (process.env.DISCORD_TOKEN) {
     Debug.Log("Logging in discord...");
-    bot.login(process.env.DISCORD_TOKEN).then(() => Debug.Log("Successfully logged in discord!"));
+    bot.login(process.env.DISCORD_TOKEN).then(async () => {
+        Debug.Log("Successfully logged in discord!")
+        if (process.env.BOT_OWNER_ID) {
+            botOwner = await bot.fetchUser(process.env.BOT_OWNER_ID);
+            if (!botOwner) {
+                throw new Error("bot owner id is invalid");
+            }
+        }
+        else {
+            throw new Error("bot owner id is undefined");
+        }
+    });
 }
 else {
     throw new Error("discord token is undefined");
@@ -109,18 +122,28 @@ bot.on("message", async msg => {
 
 bot.on("guildBanRemove", async (guild, user) => {
     let ch = guild.systemChannel as Discord.TextChannel;
-    if (!ch) return;
-    await ch.send(`Осторожно! ${user.toString()} вышел на свободу!`);
+    await ch?.send(`Осторожно! ${user.toString()} вышел на свободу!`);
 });
 
 bot.on("guildMemberAdd", async member => {
     let ch = member.guild.systemChannel as Discord.TextChannel;
-    if (!ch) return;
-    await ch.send(`Здравствуй, *${member.displayName}*!`);
+    await ch?.send(`Здравствуй, *${member.displayName}*!`);
 });
 
 bot.on("guildMemberRemove", member => {
     getGuildData(member).deleteAccount(member);
+});
+
+bot.on("guildCreate", async guild => {
+    await botOwner?.send(`Присоединился к серверу '${guild.nameAcronym}'. *Стрёмно...*`);
+});
+
+bot.on("guildDelete", async guild => {
+    deleteGuildData(guild);
+    try {
+        await botOwner?.send(`меня убрали с сервера '${guild.nameAcronym}'. *Ну и ладно...*`);
+    }
+    catch {}
 });
 
 // #region error & close events

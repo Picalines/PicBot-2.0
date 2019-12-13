@@ -73,7 +73,7 @@ export abstract class Command {
 export const commandTokenizer = new Tokenizer<ArgumentType>({
     string: /".*?"/,
     space: /\s+/,
-    user: /<@\d+>/g,
+    user: /<@\!?\d+>/g,
     role: /<@&\d+>/g,
     channel: /<#\d+>/g,
     everyone: /@everyone/g,
