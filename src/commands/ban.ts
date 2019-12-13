@@ -6,8 +6,8 @@ import { getGuildData } from "../guildData";
 export class BanCommand extends Command {
     info: CommandInfo = {
         name: "ban",
-        syntax: [["user", "member2ban"], ["string", "reason", false], ["int", "delaySec", false]],
-        description: "банит участника сервера",
+        syntax: [["user", "member"], ["string", "reason", false], ["int", "delaySec", false]],
+        description: "банит участника сервера `member`",
         permission: "admin",
         group: "Администрирование"
     };

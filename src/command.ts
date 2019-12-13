@@ -44,11 +44,11 @@ export abstract class Command {
         let s = "";
         for (let i in syntax) {
             let arg = syntax[i];
-            let sarg = `${arg[1]}: *${arg[0]}*`;
+            let sarg = `${arg[1]}: ${arg[0]}`;
             if (arg[2] == false) {
                 sarg = `[${sarg}]`;
             }
-            s += sarg + " ";
+            s += `\`${sarg}\` `;
         }
         return s.slice(0, -1);
     }
