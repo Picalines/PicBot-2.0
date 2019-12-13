@@ -1,6 +1,7 @@
 import { Command, CommandInfo, ArgumentEnumerator, commands, findCommand } from "../command";
 import { Message, RichEmbed, GuildMember } from "discord.js";
 import { IAsset, getAsset } from "../database";
+import { colors } from "../utils";
 
 interface CommandList {
     group: string;
@@ -58,7 +59,7 @@ export class HelpCommand extends Command {
 
         let embed = new RichEmbed();
         embed.setTitle("Список доступных команд");
-        embed.setColor("#00ff51");
+        embed.setColor(colors.AQUA);
 
         for (let g in groupedArr) {
             let s = "";
@@ -81,7 +82,7 @@ export class HelpCommand extends Command {
 
         let embed = new RichEmbed();
         embed.setTitle("Типы аргументов");
-        embed.setColor("#2eff70");
+        embed.setColor(colors.GREEN);
 
         let s = "";
         for (let t in typeDesc) {
@@ -94,7 +95,7 @@ export class HelpCommand extends Command {
     private generateCommandHelp(info: CommandInfo): RichEmbed {
         let embed = new RichEmbed();
         embed.setTitle(`Информация о команде \`${info.name}\``);
-        embed.setColor("#2eff70");
+        embed.setColor(colors.GREEN);
         embed.addField("Описание", info.description);
         embed.addField("Аргументы", info.syntax != undefined ? Command.syntaxToString(info.syntax) : "*нету*");
         embed.addField("Группа", info.group || "Другое");

@@ -1,6 +1,6 @@
 import { Message, RichEmbed, GuildMember, TextChannel } from "discord.js";
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
-import { delay, getMemberFromMention } from "../utils";
+import { delay, getMemberFromMention, colors } from "../utils";
 import { getGuildData } from "../guildData";
 
 export class BanCommand extends Command {
@@ -46,7 +46,7 @@ export class BanCommand extends Command {
         banEmbed.setTitle("Информация о бане");
         banEmbed.setThumbnail(member.user.avatarURL);
         banEmbed.setFooter(`Злобный админ: ${admin.displayName}`, admin.user.avatarURL);
-        banEmbed.setColor("#FF0000");
+        banEmbed.setColor(colors.RED);
         banEmbed.addField("Жертва", member.toString());
         banEmbed.addField("Причина", reason);
 

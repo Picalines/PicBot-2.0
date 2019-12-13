@@ -1,6 +1,7 @@
+import { delay, Enumerator, stringDiff, generateErrorEmbed, colors } from "./utils";
 import { loadCommands, findCommand, commandTokenizer, Command } from "./command";
-import { delay, Enumerator, stringDiff, generateErrorEmbed } from "./utils";
 import { getGuildData, deleteGuildData } from "./guildData";
+import { getLevel } from "./commands/stats";
 import * as database from "./database";
 import * as Discord from "discord.js";
 import * as dotenv from "dotenv";
@@ -55,7 +56,24 @@ bot.on("message", async msg => {
     let guildData = getGuildData(msg);
     let acc = guildData.getAccount(msg.member);
 
-    acc.getProperty("xp", 0).value += 1;
+    let xpProp = acc.getProperty("xp", 0);
+    let oldLevel = getLevel(xpProp.value);
+    xpProp.value += 1;
+    let newLevel = getLevel(xpProp.value);
+    if (oldLevel != newLevel) {
+        let levelEmbed = new Discord.RichEmbed();
+        levelEmbed.setTitle(`${msg.member.displayName} повысил свой уровень!`);
+        levelEmbed.setThumbnail(msg.member.user.avatarURL);
+        levelEmbed.setColor(colors.AQUA);
+        levelEmbed.addField("Опыт", xpProp.value, true);
+        levelEmbed.addField("Уровень", newLevel, true);
+        let levelMsg = (await msg.channel.send(levelEmbed)) as Discord.Message;
+        delay(20000).then(() => {
+            if (levelMsg?.deletable) {
+                levelMsg.delete();
+            }
+        });
+    }
 
     let prefix: string | undefined = undefined;
     for (let i in guildData.prefixes) {

@@ -1,7 +1,7 @@
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { Message, RichEmbed, GuildMember } from "discord.js";
 import { getMemberFromMention } from "../utils";
-import { getAccount } from "../account";
+import { getAccount, Account } from "../account";
 
 export class StatsCommand extends Command {
     info: CommandInfo = {
@@ -28,11 +28,20 @@ export class StatsCommand extends Command {
         embed.setThumbnail(member.user.avatarURL);
         embed.setColor(member.displayColor);
 
-        embed.addField("Опыт", xp);
         if (warns != undefined) {
             embed.addField("*Опасность*", `Предупреждения: ${warns.value}`);
         }
 
+        embed.addField("Опыт", xp, true);
+        embed.addField("Уровень", getLevel(xp), true);
+
         return embed;
     }
+}
+
+export function getLevel(xp: number | Account) {
+    if (xp instanceof Account) {
+        xp = xp.getProperty("xp", 0).value;
+    }
+    return Math.floor(Math.sqrt(xp / 8));
 }
