@@ -48,7 +48,8 @@ export class UnwarnCommand extends Command {
         name: "unwarn",
         syntax: [["user", "mention"]],
         description: "снимает предупреждение с участника сервера `mention`",
-        permission: "admin"
+        permission: "admin",
+        group: "Администрирование"
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {

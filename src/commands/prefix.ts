@@ -8,7 +8,8 @@ export class PrefixCommand extends Command {
         name: "prefix",
         syntax: [["word", "set|add|rm|get"], ["word", "newPrefix", false]],
         description: "добавляет новый / ставит единственный префикс `newPrefix` для команд бота / пишет полный список префиксов",
-        permission: "owner"
+        permission: "owner",
+        group: "Настройки"
     };
 
     private readonly opErrorMsg = "ожидалась операция `set` | `add` | `rm` | `get`";

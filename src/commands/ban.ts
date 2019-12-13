@@ -74,7 +74,8 @@ export class UnbanCommand extends Command {
         name: "unban",
         syntax: [["int", "id"]],
         description: "Убирает бан участника по его `id`",
-        permission: "admin"
+        permission: "admin",
+        group: "Администрирование"
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
