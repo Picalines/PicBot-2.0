@@ -1,7 +1,8 @@
-import { Message, RichEmbed, GuildMember, TextChannel } from "discord.js";
+import { Message, RichEmbed, GuildMember, TextChannel, DiscordAPIError } from "discord.js";
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { delay, getMemberFromMention, colors } from "../utils";
 import { getGuildData } from "../guildData";
+import { MemberNotFound } from "../error";
 
 export class BanCommand extends Command {
     info: CommandInfo = {
@@ -65,5 +66,32 @@ export class BanCommand extends Command {
         getGuildData(channel.guild).deleteAccount(member);
 
         return true;
+    }
+}
+
+export class UnbanCommand extends Command {
+    info: CommandInfo = {
+        name: "unban",
+        syntax: [["int", "id"]],
+        description: "Убирает бан участника по его `id`",
+        permission: "admin"
+    };
+
+    async run(msg: Message, argEnumerator: ArgumentEnumerator) {
+        let id = this.readNextToken(argEnumerator, "int", "ожидалось id исправившегося участника сервера");
+
+        let bans = (await msg.guild.fetchBans()).array();
+        let user = bans.find(u => u.id == id);
+        if (!user) {
+            throw new MemberNotFound(id);
+        }
+
+        try {
+            await msg.guild.unban(user);
+        } catch (err) {
+            if (err instanceof DiscordAPIError) {
+                throw new Error(`*Нечто* не позволило мне разбанить участника с id \`${id}\``);
+            }
+        }
     }
 }
