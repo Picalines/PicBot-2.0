@@ -75,6 +75,11 @@ bot.on("message", async msg => {
         });
     }
 
+    if (guildData.prefixes.length == 0) {
+        guildData.prefixes = ["~"];
+        await msg.channel.send("Из-за странной ошибки был утерян список префиксов для команд. Теперь мой единственный префикс это `~`");
+    }
+
     let prefix: string | undefined = undefined;
     for (let i in guildData.prefixes) {
         let p = guildData.prefixes[i];
