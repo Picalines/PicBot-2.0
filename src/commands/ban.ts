@@ -1,7 +1,6 @@
 import { Message, RichEmbed, GuildMember, TextChannel } from "discord.js";
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { delay, getMemberFromMention } from "../utils";
-import { SyntaxError, MemberNotFound } from "../error";
 import { getGuildData } from "../guildData";
 
 export class BanCommand extends Command {
@@ -14,14 +13,10 @@ export class BanCommand extends Command {
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        if (!argEnumerator.moveNext() || argEnumerator.current().type != "user") {
-            throw new SyntaxError(argEnumerator, "ожидалось упоминание неугодного участника сервера");
-        }
+        let memberMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание неугодного участника сервера");
 
-        let member = getMemberFromMention(msg.guild, argEnumerator.current());
-        if (member == null) {
-            throw new MemberNotFound(argEnumerator.current().value);
-        } else if (member == msg.member) {
+        let member = getMemberFromMention(msg.guild, memberMention);
+        if (member == msg.member) {
             throw new Error("нельзя забанить самого себя");
         }
 

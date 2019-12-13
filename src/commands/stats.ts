@@ -1,6 +1,5 @@
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { Message, RichEmbed, GuildMember } from "discord.js";
-import { SyntaxError, MemberNotFound } from "../error";
 import { getMemberFromMention } from "../utils";
 import { getAccount } from "../account";
 
@@ -15,10 +14,6 @@ export class StatsCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         let mention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера", "none");
         let member = mention != "none" ? getMemberFromMention(msg.guild, mention) : msg.member;
-
-        if (member == null) {
-            throw new MemberNotFound(argEnumerator.current().value);
-        }
 
         await msg.channel.send(this.createEmbed(member));
     }

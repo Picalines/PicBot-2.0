@@ -2,6 +2,7 @@ import { commandTokenizer, ArgumentType } from "./command";
 import { GuildMember, Guild, RichEmbed } from "discord.js";
 import { GuildData } from "./guildData";
 import { Token } from "./tokenizer";
+import { MemberNotFound } from "./error";
 
 export function delay(ms: number) {
     return new Promise(res => setTimeout(res, ms));
@@ -60,7 +61,7 @@ export class Enumerator<T> {
     }
 }
 
-export function getMemberFromMention(guild: Guild | GuildData, mention: string | Token<ArgumentType>): GuildMember | null {
+export function getMemberFromMention(guild: Guild | GuildData, mention: string | Token<ArgumentType>): GuildMember {
     if (guild instanceof GuildData) {
         guild = guild.guild;
     }
@@ -69,20 +70,25 @@ export function getMemberFromMention(guild: Guild | GuildData, mention: string |
     if (typeof mention == "string") {
         let match = mention.match(commandTokenizer.getRegex("user"));
         if (match == null) {
-            return null;
+            throw new MemberNotFound(mention)
         }
 
-        id = match[0].slice(2).replace(">", "");
+        id = match[0].replace(/[^\d]/g, "")
     }
     else {
         if (mention.type != "user") {
-            return null;
+            throw new MemberNotFound(mention.value);
         }
         
-        id = mention.value.slice(2).replace(">", "");
+        mention = mention.value;
+        id = mention.replace(/[^\d]/g, "")
     }
 
-    return guild.member(id);
+    let member = guild.member(id);
+    if (member == null) {
+        throw new MemberNotFound(mention);
+    }
+    return member;
 }
 
 export function generateErrorEmbed(message: Error | string, includeSmile?: boolean): RichEmbed {

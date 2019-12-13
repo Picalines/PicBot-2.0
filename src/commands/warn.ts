@@ -1,8 +1,8 @@
 import { Command, CommandInfo, ArgumentEnumerator, findCommand } from "../command";
-import { SyntaxError, MemberNotFound, MemberIsBot } from "../error";
 import { getMemberFromMention } from "../utils";
-import { Message, RichEmbed } from "discord.js";
 import { getGuildData } from "../guildData";
+import { MemberIsBot } from "../error";
+import { Message } from "discord.js";
 import { BanCommand } from "./ban";
 
 export class WarnCommand extends Command {
@@ -15,18 +15,12 @@ export class WarnCommand extends Command {
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        if (!argEnumerator.moveNext() || argEnumerator.current().type != "user") {
-            throw new SyntaxError(argEnumerator, `ожидалось упоминание участника сервера`);
-        }
+        let memberMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера");
 
-        let member = getMemberFromMention(msg.guild, argEnumerator.current());
-        if (member == null) {
-            throw new MemberNotFound(argEnumerator.current().value);
-        } else if (member.user.bot) {
-            throw new MemberIsBot(argEnumerator.current().value);
-        }
-
-        if (member.permissions.has("ADMINISTRATOR")) {
+        let member = getMemberFromMention(msg.guild, memberMention);
+        if (member.user.bot) {
+            throw new MemberIsBot(memberMention);
+        } else if (member.permissions.has("ADMINISTRATOR")) {
             throw new Error("нельзя кинуть предупреждение администратору");
         }
 
