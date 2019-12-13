@@ -17,6 +17,6 @@
     "@types/node": "^12.12.14",
     "discord.js": "^11.5.1",
     "dotenv": "^8.2.0",
-    "typescript": "^3.7.2"
+    "typescript": "^3.7.3"
   }
 }
