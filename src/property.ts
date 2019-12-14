@@ -4,13 +4,16 @@ import { ISerializeable } from "./utils";
 export type PropertyType = number | string | boolean;
 
 export interface IProperty<T extends PropertyType = PropertyType> {
-    name: string;
-    value: T;
+    readonly [0]: string;
+    readonly [1]: T;
 }
 
 export class Property<T extends PropertyType = PropertyType> implements IProperty<T>, ISerializeable {
     name: string;
     value: T;
+
+    get [0]() { return this.name; }
+    get [1](): T { return this.value; }
 
     constructor(name: string, value: T) {
         this.name = name;
@@ -18,24 +21,21 @@ export class Property<T extends PropertyType = PropertyType> implements IPropert
     }
     
     serialize(): IProperty<T> {
-        return {
-            "name": this.name,
-            "value": this.value
-        }
+        return [this.name, this.value]
     }
 }
 
 export function deserializeProperty<T extends PropertyType>(data: any): Property<T> {
     if (data != undefined) {
-        return new Property<T>(String(data.name), data.value);
+        return new Property<T>(String(data[0]), data[1]);
     }
     throw new DeserializationError("invalid property data");
 }
 
 export class DataObject implements ISerializeable {
-    readonly properties: Property<PropertyType>[];
+    readonly properties: Property[];
 
-    constructor(props?: IProperty<PropertyType>[]) {
+    constructor(props?: IProperty[]) {
         this.properties = [];
         if (props != undefined) {
             props.forEach(p => this.properties.push(deserializeProperty(p)))
@@ -85,7 +85,7 @@ export class DataObject implements ISerializeable {
     }
 
     serialize(): {} {
-        let props: IProperty<PropertyType>[] = []
+        let props: IProperty[] = []
         this.properties.forEach(p => props.push(p.serialize()))
         return props;
     }
