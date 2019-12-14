@@ -15,7 +15,7 @@ export class GuildData extends DataObject {
     constructor(guild: Discord.Guild, properties?: Property[]) {
         super(properties);
         this.guild = guild;
-        this.prefixes = ['!'];
+        this.prefixes = ['~'];
         this.accounts = {};
     }
 

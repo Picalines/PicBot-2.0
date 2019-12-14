@@ -51,7 +51,7 @@ async function runCommand(msg: Discord.Message, content: string, command: Comman
 }
 
 bot.on("message", async msg => {
-    if (msg.member.user.bot) return;
+    if (msg.member.user && msg.member.user.bot) return;
 
     let guildData = getGuildData(msg);
     let acc = guildData.getAccount(msg.member);

@@ -9,7 +9,7 @@ export class EchoCommand extends Command {
         permission: "everyone"
     };
 
-    private readonly regex = /(^")|("$)/g;
+    private readonly regex = /(^")|("$)|(^')|('$)/g;
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         let message: string;

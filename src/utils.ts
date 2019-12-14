@@ -2,7 +2,7 @@ import { commandTokenizer, ArgumentType } from "./command";
 import { GuildMember, Guild, RichEmbed } from "discord.js";
 import { GuildData } from "./guildData";
 import { Token } from "./tokenizer";
-import { MemberNotFound } from "./error";
+import { MemberNotFound, MemberIsBot } from "./error";
 
 export function delay(ms: number) {
     return new Promise(res => setTimeout(res, ms));
@@ -61,7 +61,7 @@ export class Enumerator<T> {
     }
 }
 
-export function getMemberFromMention(guild: Guild | GuildData, mention: string | Token<ArgumentType>): GuildMember {
+export function getMemberFromMention(guild: Guild | GuildData, mention: string | Token<ArgumentType>, botCheck: boolean = true): GuildMember {
     if (guild instanceof GuildData) {
         guild = guild.guild;
     }
@@ -87,6 +87,9 @@ export function getMemberFromMention(guild: Guild | GuildData, mention: string |
     let member = guild.member(id);
     if (member == null) {
         throw new MemberNotFound(mention);
+    }
+    else if (botCheck && member.user.bot) {
+        throw new MemberIsBot(mention);
     }
     return member;
 }
