@@ -17,7 +17,8 @@
     "@types/node": "^12.12.14",
     "discord.js": "^11.5.1",
     "dotenv": "^8.2.0",
+    "opusscript": "0.0.7",
     "typescript": "^3.7.3",
-    "ytdl-core-discord": "^1.0.3"
+    "ytdl-core": "^1.0.3"
   }
 }

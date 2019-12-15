@@ -189,3 +189,14 @@ export const colors: { [name in ColorName]: number } = {
 }
 
 // #endregion
+
+export function timestamp(seconds: number) {
+    let dateObj = new Date(seconds * 1000);
+    let hours = dateObj.getUTCHours();
+    let minutes = dateObj.getUTCMinutes();
+    seconds = dateObj.getSeconds();
+
+    return hours.toString().padStart(2, '0') + ':' + 
+        minutes.toString().padStart(2, '0') + ':' + 
+        seconds.toString().padStart(2, '0');
+}
