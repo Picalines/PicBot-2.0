@@ -12,7 +12,8 @@ export class ProgressCommand extends Command {
         name: "progress",
         syntax: [["word", "add|rm|clear"], ["role", "role"], ["int", "lvl"]],
         description: "ставит точку прогрессии, когда на уровне `lvl` нужно добавить / удалить роль `role`",
-        permission: "owner"
+        permission: "owner",
+        group: "Настройки"
     };
 
     private readonly opErrMsg = "ожидалась операция `add` / `rm` / `clear`";
