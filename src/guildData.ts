@@ -1,4 +1,4 @@
-import { NullReferenceError, DeserializationError, MemberIsBot } from "./error";
+import { NullReferenceError, DeserializationError, MemberIsBotError } from "./error";
 import { Account, IAccountData } from "./account";
 import { DataObject, Property } from "./property";
 import * as Discord from "discord.js";
@@ -39,7 +39,7 @@ export class GuildData extends DataObject {
             throw new NullReferenceError("member");
         }
         if (member.user.bot) {
-            throw new MemberIsBot(member.toString());
+            throw new MemberIsBotError(member.toString());
         }
 
         member = this.checkMemberGuild(member, nameof<GuildData>("getAccount"))

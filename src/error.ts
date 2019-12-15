@@ -16,23 +16,37 @@ export class SyntaxError extends Error {
     }
 }
 
-export class MemberNotFound extends Error {
-    constructor(id: string) {
-        super(`участник сервера '${id}' не найден`);
-        this.name = "MemberNotFound";
+export class NotFoundError extends Error {
+    constructor(name: string, item: string) {
+        super(`${name} '${item}' не найден`);
+        this.name = "NotFoundError";
     }
 }
 
-export class MemberIsBot extends Error {
+export class MemberNotFoundError extends NotFoundError {
+    constructor(id: string) {
+        super('участник сервера', id);
+        this.name = "MemberNotFoundError";
+    }
+}
+
+export class RoleNotFoundError extends NotFoundError {
+    constructor(id: string) {
+        super('роль', id);
+        this.name = "RoleNotFoundError";
+    }
+}
+
+export class MemberIsBotError extends Error {
     constructor(id: string) {
         super(`участник сервера '${id}' бот`);
-        this.name = "MemberIsBot";
+        this.name = "MemberIsBotError";
     }
 }
 
-export class AssetNotFound extends Error {
+export class AssetNotFoundError extends NotFoundError {
     constructor(path: string) {
-        super(`ассет '${path}' не найден`);
+        super('ассет', path);
         this.name = "AssetNotFound";
     }
 }

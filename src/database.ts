@@ -3,6 +3,7 @@ import { PropertyType } from "./property";
 import * as fs from "./fsAsync";
 import { Debug } from "./debug";
 import { bot } from "./main";
+import { AssetNotFoundError } from "./error";
 
 export const databaseFolderPath = "./database/";
 export const guildsFolderPath = databaseFolderPath + "guilds/";
@@ -69,7 +70,7 @@ export async function getAsset<T extends IAsset = IAsset>(name: string): Promise
 
     let path = assetsFolderPath + name + ".json";
     if (!(await fs.existsAsync(path))) {
-        throw new Error(`Asset '${name}' not found`);
+        throw new AssetNotFoundError(`Asset '${name}' not found`);
     }
 
     let data = (await fs.readFileAsync(path)).toString();

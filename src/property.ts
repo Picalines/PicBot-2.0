@@ -73,7 +73,7 @@ export class DataObject implements ISerializeable {
     removeProperty(name: string) {
         const prop = this.getProperty(name);
         if (prop) {
-            delete this.properties[this.properties.indexOf(prop)];
+            this.properties.splice(this.properties.indexOf(prop), 1);
         }
     }
 

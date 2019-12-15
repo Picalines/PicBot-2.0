@@ -1,7 +1,7 @@
 import { Command, CommandInfo, ArgumentEnumerator, findCommand } from "../command";
 import { getMemberFromMention } from "../utils";
 import { getGuildData } from "../guildData";
-import { MemberIsBot } from "../error";
+import { MemberIsBotError } from "../error";
 import { Message } from "discord.js";
 import { BanCommand } from "./ban";
 
@@ -19,7 +19,7 @@ export class WarnCommand extends Command {
 
         let member = getMemberFromMention(msg.guild, memberMention);
         if (member.user.bot) {
-            throw new MemberIsBot(memberMention);
+            throw new MemberIsBotError(memberMention);
         } else if (member.permissions.has("ADMINISTRATOR")) {
             throw new Error("нельзя кинуть предупреждение администратору");
         }
@@ -57,7 +57,7 @@ export class UnwarnCommand extends Command {
 
         let member = getMemberFromMention(msg.guild, memberMention);
         if (member.user.bot) {
-            throw new MemberIsBot(memberMention);
+            throw new MemberIsBotError(memberMention);
         }
         else if (member == msg.member) {
             throw new Error("нельзя снять предупреждение с самого себя");

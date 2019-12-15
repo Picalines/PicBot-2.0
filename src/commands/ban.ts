@@ -2,7 +2,7 @@ import { Message, RichEmbed, GuildMember, TextChannel, DiscordAPIError } from "d
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { delay, getMemberFromMention, colors } from "../utils";
 import { getGuildData } from "../guildData";
-import { MemberNotFound } from "../error";
+import { MemberNotFoundError } from "../error";
 
 export class BanCommand extends Command {
     info: CommandInfo = {
@@ -84,7 +84,7 @@ export class UnbanCommand extends Command {
         let bans = (await msg.guild.fetchBans()).array();
         let user = bans.find(u => u.id == id);
         if (!user) {
-            throw new MemberNotFound(id);
+            throw new MemberNotFoundError(id);
         }
 
         try {

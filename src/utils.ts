@@ -1,8 +1,8 @@
 import { commandTokenizer, ArgumentType } from "./command";
-import { GuildMember, Guild, RichEmbed } from "discord.js";
+import { GuildMember, Guild, RichEmbed, Role } from "discord.js";
 import { GuildData } from "./guildData";
 import { Token } from "./tokenizer";
-import { MemberNotFound, MemberIsBot } from "./error";
+import { MemberNotFoundError, MemberIsBotError, RoleNotFoundError } from "./error";
 
 export function delay(ms: number) {
     return new Promise(res => setTimeout(res, ms));
@@ -66,32 +66,58 @@ export function getMemberFromMention(guild: Guild | GuildData, mention: string |
         guild = guild.guild;
     }
 
-    let id: string;
     if (typeof mention == "string") {
         let match = mention.match(commandTokenizer.getRegex("user"));
         if (match == null) {
-            throw new MemberNotFound(mention)
+            throw new MemberNotFoundError(mention)
         }
-
-        id = match[0].replace(/[^\d]/g, "")
+        mention = match[0];
     }
     else {
         if (mention.type != "user") {
-            throw new MemberNotFound(mention.value);
+            throw new MemberNotFoundError(mention.value);
         }
-        
         mention = mention.value;
-        id = mention.replace(/[^\d]/g, "")
     }
+
+    let id = mention.replace(/[^\d]/g, "")
 
     let member = guild.member(id);
     if (member == null) {
-        throw new MemberNotFound(mention);
+        throw new MemberNotFoundError(mention);
     }
     else if (botCheck && member.user.bot) {
-        throw new MemberIsBot(mention);
+        throw new MemberIsBotError(mention);
     }
     return member;
+}
+
+export function getRoleFromMention(guild: Guild | GuildData, mention: string | Token<ArgumentType>): Role {
+    if (guild instanceof GuildData) {
+        guild = guild.guild;
+    }
+
+    if (typeof mention == "string") {
+        let match = mention.match(commandTokenizer.getRegex("role"));
+        if (match == null) {
+            throw new RoleNotFoundError(mention)
+        }
+        mention = match[0];
+    }
+    else {
+        if (mention.type != "role") {
+            throw new RoleNotFoundError(mention.value);
+        }
+        mention = mention.value;
+    }
+
+    let id = mention.replace(/[^\d]/g, "");
+    
+    let role = guild.roles.find(r => r.id == id);
+    if (role == null) {
+        throw new RoleNotFoundError(mention);
+    }
+    return role;
 }
 
 export function generateErrorEmbed(message: Error | string, includeSmile?: boolean): RichEmbed {
