@@ -3,7 +3,7 @@ import { Message } from "discord.js";
 import { getGuildData } from "../guildData";
 import { getRoleFromMention } from "../utils";
 
-interface IProgressionProp {
+export interface IProgression {
     [i: number]: { [0]: "add" | "rm", [1]: string }[]
 }
 
@@ -23,7 +23,7 @@ export class ProgressCommand extends Command {
         let guildData = getGuildData(msg);
 
         if (operation == "clear") {
-            guildData.removeProperty("progress");
+            guildData.removeProperty("progression");
             await msg.reply("прогрессия успешно очищена.");
             return;
         }
@@ -35,9 +35,9 @@ export class ProgressCommand extends Command {
         let role = getRoleFromMention(msg.guild, roleMention);
         let lvl = Number(this.readNextToken(argEnumerator, "int", "ожидался номер уровня"));
 
-        let prop = guildData.getProperty<string>("progress", "{}");
+        let prop = guildData.getProperty<string>("progression", "{}");
 
-        let progression: IProgressionProp = {};
+        let progression: IProgression = {};
         try {
             progression = JSON.parse(prop.value);
         }
@@ -63,9 +63,7 @@ export class ProgressCommand extends Command {
 
         progression[lvl].push([ operation, role.id ]);
 
-        if (progression == {}) {
-            guildData.removeProperty("progress");
-        }
+        prop.value = JSON.stringify(progression);
 
         await msg.reply("настройки прогрессии успешно обновлены");
     }

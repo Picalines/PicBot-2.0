@@ -1,11 +1,13 @@
 import { delay, Enumerator, stringDiff, generateErrorEmbed, colors } from "./utils";
 import { loadCommands, findCommand, commandTokenizer, Command } from "./command";
-import { getGuildData, deleteGuildData } from "./guildData";
+import { getGuildData, deleteGuildData, GuildData } from "./guildData";
+import { IProgression } from "./commands/progress";
 import { getLevel } from "./commands/stats";
 import * as database from "./database";
 import * as Discord from "discord.js";
 import * as dotenv from "dotenv";
 import { Debug } from "./debug";
+import { Property } from "./property";
 
 if (process.env.NODE_ENV !== 'production') {
     dotenv.config();
@@ -50,6 +52,75 @@ async function runCommand(msg: Discord.Message, content: string, command: Comman
     }
 }
 
+async function handleNewLevel(msg: Discord.Message, guildData: GuildData, xpProp: Property<number>, newLevel: number) {
+    let levelEmbed = new Discord.RichEmbed();
+    levelEmbed.setTitle(`${msg.member.displayName} повысил свой уровень!`);
+    levelEmbed.setThumbnail(msg.member.user.avatarURL);
+    levelEmbed.setColor(colors.AQUA);
+    levelEmbed.addField("Опыт", xpProp.value, true);
+    levelEmbed.addField("Уровень", newLevel, true);
+
+    let levelMsg = (await msg.channel.send(levelEmbed)) as Discord.Message;
+    delay(20000).then(() => {
+        if (levelMsg?.deletable) {
+            levelMsg.delete();
+        }
+    });
+
+    let progressionProp = guildData.getProperty<string>("progression");
+    if (!progressionProp) {
+        return;
+    }
+
+    let progression: IProgression = JSON.parse(progressionProp.value);
+    if (!progression[newLevel]) {
+        return;
+    } else if (!msg.guild.me.permissions.has("MANAGE_ROLES")) {
+        await msg.channel.send(generateErrorEmbed(`у меня нет права на управление ролями, из-за чего ${msg.member} не может прогрессировать!`));
+    }
+
+    let progressEmbed = new Discord.RichEmbed();
+    progressEmbed.setTitle(`${msg.member.displayName} прогрессирует!`);
+    progressEmbed.setThumbnail(msg.member.user.avatarURL);
+    progressEmbed.setColor(colors.BLUE);
+
+    let desc = "";
+
+    for (let i in progression[newLevel]) {
+        let action = progression[newLevel][i];
+
+        let role = msg.guild.roles.find(r => r.id == action[1]);
+        if (!role) {
+            await msg.channel.send(generateErrorEmbed(`не могу найти роль ${action[1]}. Орите на владельца сервера!`));
+            continue;
+        }
+
+        let reason = `Получен уровень ${newLevel}`;
+        try {
+            await msg.member[action[0] == "add" ? "addRole" : "removeRole"](role, reason);
+            desc += `${action[0] == "add" ? "получена": "потеряна"} роль ${role.name}\n`;
+        }
+        catch (err) { }
+    }
+
+    let err: RangeError | undefined = undefined;
+    try {
+        progressEmbed.setDescription(desc);
+    }
+    catch (err2) {
+        if (err2 instanceof RangeError) {
+            err = err2; 
+        }
+    }
+
+    if (err) {
+        await msg.reply(`прогрессируешь!\n${desc}`);
+    }
+    else {
+        await msg.channel.send(progressEmbed);
+    }
+}
+
 bot.on("message", async msg => {
     if (msg.member.user && msg.member.user.bot) return;
 
@@ -60,19 +131,9 @@ bot.on("message", async msg => {
     let oldLevel = getLevel(xpProp.value);
     xpProp.value += 1;
     let newLevel = getLevel(xpProp.value);
+
     if (oldLevel != newLevel) {
-        let levelEmbed = new Discord.RichEmbed();
-        levelEmbed.setTitle(`${msg.member.displayName} повысил свой уровень!`);
-        levelEmbed.setThumbnail(msg.member.user.avatarURL);
-        levelEmbed.setColor(colors.AQUA);
-        levelEmbed.addField("Опыт", xpProp.value, true);
-        levelEmbed.addField("Уровень", newLevel, true);
-        let levelMsg = (await msg.channel.send(levelEmbed)) as Discord.Message;
-        delay(20000).then(() => {
-            if (levelMsg?.deletable) {
-                levelMsg.delete();
-            }
-        });
+        await handleNewLevel(msg, guildData, xpProp, newLevel);
     }
 
     if (guildData.prefixes.length == 0) {

@@ -86,7 +86,11 @@ export class DataObject implements ISerializeable {
 
     serialize(): {} {
         let props: IProperty[] = []
-        this.properties.forEach(p => props.push(p.serialize()))
+        this.properties.forEach(p =>{
+            if (p.name != "undefined" && p.value != null) {
+                props.push(p.serialize())
+            }
+        });
         return props;
     }
 }

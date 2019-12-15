@@ -120,11 +120,19 @@ export function getRoleFromMention(guild: Guild | GuildData, mention: string | T
     return role;
 }
 
-export function generateErrorEmbed(message: Error | string, includeSmile?: boolean): RichEmbed {
+export function generateErrorEmbed(message: Error | string, includeSmile?: boolean): RichEmbed | string {
     let errorEmbed = new RichEmbed();
     errorEmbed.setTitle(`**Произошла ошибка**`);
     errorEmbed.setColor(colors.RED);
-    errorEmbed.setDescription((message instanceof Error ? message.message : message) + (includeSmile != false ? " :/" : ""));
+    let desc = (message instanceof Error ? message.message : message) + (includeSmile != false ? " :/" : "");
+    try {
+        errorEmbed.setDescription(desc);
+    }
+    catch (err) {
+        if (err instanceof RangeError) {
+            return `**Ошибка**: ${desc}`;
+        }
+    }
     return errorEmbed;
 }
 
