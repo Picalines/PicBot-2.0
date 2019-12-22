@@ -33,7 +33,7 @@ export class WarnCommand extends Command {
         await msg.channel.send(`${msg.member} кинул предупреждение ${member} (${memberWarns.value}/${maxWarns})`);
 
         if (memberWarns.value >= maxWarns) {
-            let banCommand = findCommand(c => c.info.name == "ban") as BanCommand;
+            let banCommand = findCommand(c => c instanceof BanCommand) as BanCommand;
             if (banCommand == undefined) {
                 throw new Error("в данный момент бот не имеет доступа к команде `ban`. Админы, делайте всё руками");
             }

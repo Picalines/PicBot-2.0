@@ -4,17 +4,12 @@ import { colors, timestamp } from "../utils";
 import { Readable } from "stream";
 import ytdl from "ytdl-core";
 import { bot } from "../main";
+import { setInterval } from "timers";
 
-interface IMusicQueueItem {
+interface IQueueItem {
     readonly link: string;
     readonly info: ytdl.videoInfo;
     readonly msg: Message;
-}
-
-interface IMusicQueue {
-    dispatcher?: StreamDispatcher;
-    items: IMusicQueueItem[];
-    current?: IMusicQueueItem;
 }
 
 export class PlayCommand extends Command {
@@ -26,47 +21,32 @@ export class PlayCommand extends Command {
         group: "Музыка"
     };
 
-    private queues: { [serverId: string]: IMusicQueue } = {};
-
+    private queues: { [serverId: string]: IQueueItem[] } = {};
+    private timeOuts: { [serverId: string]: NodeJS.Timeout } = {};
     private invalidLinkMsg = "ожидалась youtube ссылка на трек";
-
-    private expectedLeave = false;
-
-    constructor() {
-        super();
-        if (bot.listeners("voiceStateUpdate").length > 0) {
-            return;
-        }
-        bot.on("voiceStateUpdate", async (oldMember, newMember) => {
-            if (oldMember.id != oldMember.guild.me.id) return;
-            if (!this.connectedTo(oldMember.voiceChannel || newMember.voiceChannel)) {
-                if (!this.expectedLeave) {
-                    let ch: TextChannel;
-                    let queue = this.getQueue(oldMember.guild);
-                    if (queue?.current) {
-                        ch = queue.current.msg.channel as TextChannel;
-                    }
-                    else {
-                        ch = oldMember.guild.systemChannel as TextChannel;
-                    }
-                    await ch.send("Чо офигели выкидывать меня с голосового канала...\nОчередь очищена");
-                }
-                this.expectedLeave = true;
-                delete this.queues[oldMember.guild.id];
-            }
-        });
-    }
 
     private connectedTo(channel: VoiceChannel, me?: GuildMember): boolean {
         if (!me) me = channel.guild.me;
         let members = channel.members.array();
-        console.log(members.length);
         for (let i in members) {
             if (members[i].id == me.id) {
                 return true;
             }
         }
         return false;
+    }
+
+    private checkChannel(channel: VoiceChannel) {
+        if (!this.connectedTo(channel)) {
+            delete this.queues[channel.guild.id];
+            channel.connection?.disconnect();
+            clearInterval(this.timeOuts[channel.guild.id]);
+        }
+        else if (channel.members.size == 1) {
+            delete this.queues[channel.guild.id];
+            channel.leave();
+            clearInterval(this.timeOuts[channel.guild.id]);
+        }
     }
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
@@ -83,7 +63,7 @@ export class PlayCommand extends Command {
         }
 
         if (!this.queues[msg.guild.id]) {
-            this.queues[msg.guild.id] = { items: [] };
+            this.queues[msg.guild.id] = [];
         }
 
         let info: ytdl.videoInfo;
@@ -94,7 +74,7 @@ export class PlayCommand extends Command {
             throw new Error("Не удалось получить информацию о треке");
         }
 
-        this.queues[msg.guild.id].items.push({
+        this.queues[msg.guild.id].push({
             link: link,
             msg: msg,
             info: info
@@ -104,73 +84,60 @@ export class PlayCommand extends Command {
         
         if (!this.connectedTo(msg.member.voiceChannel)) {
             let connection = await msg.member.voiceChannel.join();
-            console.log("start playing");
-            console.log(this.queues[msg.guild.id]);
-            await this.play(connection);
+            
+            this.timeOuts[msg.member.guild.id] = setInterval(() => {
+                this.checkChannel(connection?.channel);
+            }, 10000);
+
+            await this.play(connection.channel);
         }
     }
 
-    async play(connection: VoiceConnection) {
-        if (!connection) {
+    async play(channel: VoiceChannel) {
+        if (!channel || !channel.connection) {
             return;
         }
 
-        const serverId = connection.channel.guild.id;
+        const serverId = channel.guild.id;
 
-        console.log(this.queues[serverId]);
-        if (!this.queues[serverId]) {
-            this.queues[serverId] = { items: [] };
-        }
+        const queue = this.queues[serverId];
+        const current = queue ? queue.shift() : undefined;
 
-        function leave(c: PlayCommand) {
-            console.log("leaving");
-            delete c.queues[serverId];
-            c.expectedLeave = true;
-            connection.channel.leave();
-        }
-
-        let queue = this.queues[serverId];
-        if (queue.items.length == 0 && queue.current == undefined) {
-            leave(this);
-            return;
-        }
-
-        queue.current = queue.items.shift();
-
-        if (queue.current == undefined) {
-            leave(this);
+        if (!queue || !current) {
+            channel.leave();
+            delete this.queues[serverId];
             return;
         }
 
         let playable: Readable;
         try {
-            playable = ytdl(queue.current.link, { "filter": "audioonly" });
+            playable = ytdl(current.link, { "filter": "audioonly" });
         }
         catch (err) {
-            console.log(err);
-            await queue.current.msg.channel.send(`не удалось загрузить трек '${queue.current.info.title}'`);
-            await this.play(connection);
+            await current.msg.channel.send(`не удалось загрузить трек '${current.info.title}'`);
+            this.play(channel);
             return;
         }
 
-        let embed = new RichEmbed();
+        const embed = new RichEmbed();
         embed.setColor(colors.RED);
         embed.setTitle("**Играет следующий трек из очереди!**");
-        embed.setFooter(`Предложил(а) ${queue.current.msg.member.displayName}`, queue.current.msg.author.avatarURL);
-        embed.setThumbnail(queue.current.info.thumbnail_url);
-        embed.addField("Название", queue.current.info.title);
-        embed.addField("Продолжительность", timestamp(Number(queue.current.info.length_seconds)));
-        embed.addField("Ссылка", queue.current.link);
+        embed.setFooter(`Предложил(а) ${current.msg.member.displayName}`, current.msg.author.avatarURL);
+        embed.setThumbnail(current.info.thumbnail_url);
+        embed.addField("Название", current.info.title);
+        embed.addField("Продолжительность", timestamp(Number(current.info.length_seconds)));
+        embed.addField("Ссылка", current.link);
 
-        await queue.current.msg.reply(embed);
+        await current.msg.reply(embed);
 
-        queue.dispatcher = connection.playStream(playable);
-        queue.dispatcher.on("end", async reason => {
-            await this.play(connection);
+        const dispatcher = channel.connection.playStream(playable);
+        dispatcher.on("end", () => {
+            console.log("end play");
+            this.play(channel.guild.channels.find(ch => ch.id == channel.id) as VoiceChannel);
         });
     }
 
-    getQueue(guild: Guild | Message): IMusicQueue | undefined {
+    getQueue(guild: Guild | Message): IQueueItem[] | undefined {
         if (guild instanceof Message) {
             guild = guild.guild;
         }
@@ -187,7 +154,7 @@ export class CurrentQueueCommand extends Command {
         group: "Музыка"
     };
 
-    private formatQueueItem(item: IMusicQueueItem): string {
+    private formatQueueItem(item: IQueueItem): string {
         return item.info.title + `(${timestamp(Number(item.info.length_seconds))})`
     }
 
@@ -205,18 +172,8 @@ export class CurrentQueueCommand extends Command {
         }
 
         let queue = playCommand.getQueue(msg);
-        if (queue == undefined || queue.items.length == 0 || queue.current == undefined) {
-            let m = "очередь треков пуста";
-            if (queue == undefined) {
-                await msg.reply(m);
-                return;
-            }
-
-            if (queue.current) {
-                m += ". Сейчас играет: " + this.formatQueueItem(queue.current);
-            }
-
-            await msg.reply(m);
+        if (!queue || queue.length == 0) {
+            await msg.reply("очередь треков пуста");
             return;
         }
 
@@ -224,21 +181,18 @@ export class CurrentQueueCommand extends Command {
         let qEmbed = new RichEmbed();
         qEmbed.setColor(colors.AQUA);
         qEmbed.setTitle("**Очередь треков**");
-        
-        let currentFormat = this.formatQueueItem(queue.current);
-        qEmbed.addField("Сейчас играет", currentFormat);
 
         let allFormat = "";
-        for (let i in queue.items) {
-            allFormat += this.formatQueueItem(queue.items[i]) + "\n";
+        for (let i in queue) {
+            allFormat += this.formatQueueItem(queue[i]) + "\n";
         }
 
         try {
-            qEmbed.addField("В очереди", allFormat);
+            qEmbed.setDescription(allFormat);
         }
         catch (err) {
             if (err instanceof RangeError) {
-                await msg.reply(`Сейчас играет: ${currentFormat}\nВ очереди:\n${allFormat}`);
+                await msg.reply(`очередь треков:\n${allFormat}`);
                 return;
             }
             else {
