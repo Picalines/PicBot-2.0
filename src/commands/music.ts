@@ -1,10 +1,9 @@
-import { Message, RichEmbed, StreamDispatcher, VoiceConnection, TextChannel, Guild, VoiceChannel, GuildMember } from "discord.js";
 import { Command, CommandInfo, ArgumentEnumerator, findCommand } from "../command";
-import { colors, timestamp } from "../utils";
+import { Message, RichEmbed, Guild, VoiceChannel, GuildMember } from "discord.js";
+import { colors, timestamp, emojis } from "../utils";
+import { setInterval } from "timers";
 import { Readable } from "stream";
 import ytdl from "ytdl-core";
-import { bot } from "../main";
-import { setInterval } from "timers";
 
 interface IQueueItem {
     readonly link: string;
@@ -65,16 +64,17 @@ export class PlayCommand extends Command {
             throw new Error(this.invalidLinkMsg);
         }
 
-        if (!this.queues[msg.guild.id]) {
-            this.queues[msg.guild.id] = [];
-        }
-
+        
         let info: ytdl.videoInfo;
         try {
             info = await ytdl.getBasicInfo(link);
         }
         catch (err) {
             throw new Error("Не удалось получить информацию о треке");
+        }
+        
+        if (this.queues[msg.guild.id] == undefined) {
+            this.queues[msg.guild.id] = [];
         }
 
         this.queues[msg.guild.id].push({
@@ -134,10 +134,13 @@ export class PlayCommand extends Command {
         embed.addField("Продолжительность", timestamp(Number(current.info.length_seconds)));
         embed.addField("Ссылка", current.link);
 
-        await current.msg.reply(embed);
+        await current.msg.channel.send(embed);
 
         const dispatcher = channel.connection.playStream(playable);
-        dispatcher.on("end", () => {
+        dispatcher.on("end", reason => {
+            if (reason == "stopCommand") {
+                queue.length = 0;
+            }
             this.play(channel.guild.channels.find(ch => ch.id == channel.id) as VoiceChannel);
         });
     }
@@ -187,7 +190,7 @@ export class CurrentQueueCommand extends Command {
     }
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        let playCommand = checkAvailable(msg);
+        const playCommand = checkAvailable(msg);
 
         let queue = playCommand.getQueue(msg);
         if (!queue || queue.length == 0) {
@@ -231,7 +234,7 @@ export class SkipCommand extends Command {
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        let playCommand = checkAvailable(msg);
+        const playCommand = checkAvailable(msg);
 
         let current = playCommand.getCurrent(msg);
         if (!current) {
@@ -239,11 +242,50 @@ export class SkipCommand extends Command {
         }
 
         if (current.msg.author == msg.author) {
-            playCommand.play(msg.guild.voiceConnection.channel);
+            msg.member.voiceChannel.connection.dispatcher.end("skipCommand")
             await msg.reply("трек успешно пропущен");
         }
         else {
             await msg.reply("я не пропустил трек, так его предложил другой участник сервера");
+        }
+    }
+}
+
+
+export class StopCommand extends Command {
+    info: CommandInfo = {
+        name: "stop",
+        description: "бот останавливает текущий трек, если за это проголосует половина человек, сидящих в голосовом канале",
+        permission: "everyone",
+        group: "Музыка"
+    };
+
+    async run(msg: Message, argEnumerator: ArgumentEnumerator) {
+        checkAvailable(msg);
+
+        
+        let voiceChannel = msg.member.voiceChannel;
+        
+        async function stop() {
+            voiceChannel.connection.dispatcher.end("stopCommand");
+            await msg.reply("музыка (*надеюсь*) успешно остановлена");
+        }
+        
+        if (voiceChannel.members.size == 2) {
+            await stop();
+            return;
+        }
+        
+        await msg.react(emojis.thumbsup);
+
+        const filter = (r: any, u: any) => r.emoji == emojis.thumbsup && u != msg.author;
+        const collected = await msg.awaitReactions(filter, { time: 10000 });
+
+        if (collected.size + 1 >= voiceChannel.members.size / 2) {
+            await stop();
+        }
+        else {
+            await msg.reply("недостаточно голосов :/");
         }
     }
 }

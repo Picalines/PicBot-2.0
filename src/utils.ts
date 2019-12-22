@@ -190,6 +190,17 @@ export const colors: { [name in ColorName]: number } = {
 
 // #endregion
 
+// #region emojis
+
+type Emoji = "thumbsup" | "repair"
+
+export const emojis: { [key in Emoji]: string } = {
+    thumbsup: "👍",
+    repair: "🔧"
+}
+
+// #endregion
+
 export function timestamp(seconds: number) {
     let dateObj = new Date(seconds * 1000);
     let hours = dateObj.getUTCHours();

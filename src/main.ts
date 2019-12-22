@@ -1,4 +1,4 @@
-import { delay, Enumerator, stringDiff, generateErrorEmbed, colors } from "./utils";
+import { delay, Enumerator, stringDiff, generateErrorEmbed, colors, emojis } from "./utils";
 import { loadCommands, findCommand, commandTokenizer, Command } from "./command";
 import { getGuildData, deleteGuildData, GuildData } from "./guildData";
 import { IProgression } from "./commands/progress";
@@ -180,12 +180,11 @@ bot.on("message", async msg => {
             return;
         }
         
-        const fixEmoji = "🔧";
-        errMsg += `. Возможно вы имели в виду \`${nearest[0]}\`? Если да, то жми на ${fixEmoji}`;
+        errMsg += `. Возможно вы имели в виду \`${nearest[0]}\`? Если да, то жми на ${emojis.repair}`;
         
         let rmsg = await msg.reply(generateErrorEmbed(errMsg, false)) as Discord.Message;
-        await rmsg.react(fixEmoji);
-        const filter = (r: any, u: any) => r.emoji.name == fixEmoji && u == msg.author
+        await rmsg.react(emojis.repair);
+        const filter = (r: any, u: any) => r.emoji.name == emojis.repair && u == msg.author;
         let collected = await rmsg.awaitReactions(filter, { time: 10000, max: 1 });
         if (collected.size > 0) {
             if (rmsg.deletable) {
