@@ -22,6 +22,7 @@ export class PlayCommand extends Command {
     };
 
     private queues: { [serverId: string]: IQueueItem[] } = {};
+    private playing: { [serverId: string]: IQueueItem } = {};
     private timeOuts: { [serverId: string]: NodeJS.Timeout } = {};
     private invalidLinkMsg = "ожидалась youtube ссылка на трек";
 
@@ -39,11 +40,13 @@ export class PlayCommand extends Command {
     private checkChannel(channel: VoiceChannel) {
         if (!this.connectedTo(channel)) {
             delete this.queues[channel.guild.id];
+            delete this.playing[channel.guild.id];
             channel.connection?.disconnect();
             clearInterval(this.timeOuts[channel.guild.id]);
         }
         else if (channel.members.size == 1) {
             delete this.queues[channel.guild.id];
+            delete this.playing[channel.guild.id];
             channel.leave();
             clearInterval(this.timeOuts[channel.guild.id]);
         }
@@ -102,12 +105,15 @@ export class PlayCommand extends Command {
 
         const queue = this.queues[serverId];
         const current = queue ? queue.shift() : undefined;
-
+        
         if (!queue || !current) {
             channel.leave();
             delete this.queues[serverId];
+            delete this.playing[serverId];
             return;
         }
+
+        this.playing[serverId] = current;
 
         let playable: Readable;
         try {
@@ -132,7 +138,6 @@ export class PlayCommand extends Command {
 
         const dispatcher = channel.connection.playStream(playable);
         dispatcher.on("end", () => {
-            console.log("end play");
             this.play(channel.guild.channels.find(ch => ch.id == channel.id) as VoiceChannel);
         });
     }
@@ -143,6 +148,29 @@ export class PlayCommand extends Command {
         }
         return this.queues[guild.id];
     }
+
+    getCurrent(guild: Guild | Message): IQueueItem | undefined {
+        if (guild instanceof Message) {
+            guild = guild.guild;
+        }
+        return this.playing[guild.id];
+    }
+}
+
+
+function checkAvailable(msg: Message): PlayCommand {
+    if (!msg.guild.voiceConnection) {
+        throw new Error("Бот сейчас не играет музыку на сервере");
+    }
+    if (msg.member.voiceChannel != msg.guild.voiceConnection.channel) {
+        throw new Error("Ты находишься в другом голосовом канале");
+    }
+
+    let playCommand = findCommand(c => c instanceof PlayCommand) as PlayCommand;
+    if (!playCommand) {
+        throw new Error("В данный момент бот не имеет доступа к музыке");
+    }
+    return playCommand;
 }
 
 
@@ -159,24 +187,13 @@ export class CurrentQueueCommand extends Command {
     }
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        if (!msg.guild.voiceConnection) {
-            throw new Error("Бот сейчас не играет музыку на сервере");
-        }
-        if (msg.member.voiceChannel != msg.guild.voiceConnection.channel) {
-            throw new Error("Ты находишься в другом голосовом канале");
-        }
-
-        let playCommand = findCommand(c => c instanceof PlayCommand) as PlayCommand;
-        if (!playCommand) {
-            throw new Error("В данный момент бот не имеет доступа к музыке");
-        }
+        let playCommand = checkAvailable(msg);
 
         let queue = playCommand.getQueue(msg);
         if (!queue || queue.length == 0) {
             await msg.reply("очередь треков пуста");
             return;
         }
-
         
         let qEmbed = new RichEmbed();
         qEmbed.setColor(colors.AQUA);
@@ -201,5 +218,32 @@ export class CurrentQueueCommand extends Command {
         }
 
         await msg.reply(qEmbed);
+    }
+}
+
+
+export class SkipCommand extends Command {
+    info: CommandInfo = {
+        name: "skip",
+        description: "бот пропускает текущий трек",
+        permission: "everyone",
+        group: "Музыка"
+    };
+
+    async run(msg: Message, argEnumerator: ArgumentEnumerator) {
+        let playCommand = checkAvailable(msg);
+
+        let current = playCommand.getCurrent(msg);
+        if (!current) {
+            throw new Error("Бот не играет музыку");
+        }
+
+        if (current.msg.author == msg.author) {
+            playCommand.play(msg.guild.voiceConnection.channel);
+            await msg.reply("трек успешно пропущен");
+        }
+        else {
+            await msg.reply("я не пропустил трек, так его предложил другой участник сервера");
+        }
     }
 }
