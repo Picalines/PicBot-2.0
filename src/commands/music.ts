@@ -262,7 +262,6 @@ export class StopCommand extends Command {
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         checkAvailable(msg);
-
         
         let voiceChannel = msg.member.voiceChannel;
         
