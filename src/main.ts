@@ -144,7 +144,7 @@ bot.on("message", async msg => {
     let prefix: string | undefined = undefined;
     for (let i in guildData.prefixes) {
         let p = guildData.prefixes[i];
-        if (msg.content.startsWith(p)) {
+        if (msg.content.toLowerCase().startsWith(p.toLowerCase())) {
             prefix = p;
             break
         }
@@ -152,7 +152,7 @@ bot.on("message", async msg => {
 
     if (prefix == undefined) return;
 
-    let noPrefixContent = msg.content.slice(prefix.length);
+    let noPrefixContent = msg.content.slice(prefix.length).toLowerCase();
 
     let cname = noPrefixContent.split(" ")[0] || "";
     let nearest = ["", Number.MAX_SAFE_INTEGER];

@@ -136,6 +136,22 @@ export function generateErrorEmbed(message: Error | string, includeSmile?: boole
     return errorEmbed;
 }
 
+/**
+ * Returns a random number between min (inclusive) and max (exclusive)
+ */
+export function randomRange(min: number, max: number) {
+    return Math.random() * (max - min) + min;
+}
+
+/**
+ * Returns a random integer between min (inclusive) and max (inclusive).
+ */
+export function randomRangeInt(min: number, max: number) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 // #region discord colors
 
 type ColorName = "DEFAULT"
@@ -192,11 +208,12 @@ export const colors: { [name in ColorName]: number } = {
 
 // #region emojis
 
-type Emoji = "thumbsup" | "repair"
+type Emoji = "thumbsup" | "repair" | "dice"
 
 export const emojis: { [key in Emoji]: string } = {
     thumbsup: "👍",
-    repair: "🔧"
+    repair: "🔧",
+    dice: "🎲",
 }
 
 // #endregion

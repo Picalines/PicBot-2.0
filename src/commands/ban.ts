@@ -7,7 +7,7 @@ import { MemberNotFoundError } from "../error";
 export class BanCommand extends Command {
     info: CommandInfo = {
         name: "ban",
-        syntax: [["user", "member"], ["string", "reason", false], ["int", "delaySec", false]],
+        syntax: [["user", "member"], ["string", "reason", false], ["float", "delaySec", false]],
         description: "банит участника сервера `member`",
         permission: "admin",
         group: "Администрирование"

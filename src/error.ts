@@ -2,11 +2,14 @@ import { ArgumentType, ArgumentEnumerator } from "./command";
 import { Token } from "./tokenizer";
 
 export class SyntaxError extends Error {
-    constructor(token: Token<ArgumentType> | ArgumentEnumerator, message: string) {
-        if (!(token instanceof Token)) {
+    constructor(token: Token<ArgumentType> | ArgumentEnumerator | string, message: string) {
+        if (typeof token != "string" && !(token instanceof Token)) {
             token = token.current();
         }
-        if (token != undefined) {
+        if (typeof token == "string") {
+            super(`синтаксическая ошибка на словк '${token}': ${message}`);
+        }
+        else if (token != undefined) {
             super(`синтаксическая ошибка на слове '${token.value}': ${message}`);
         }
         else {

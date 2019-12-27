@@ -16,10 +16,10 @@ export class PrefixCommand extends Command {
     private readonly prErrorMsg = "ожидался новый префикс для команд";
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        let operation = this.readNextToken(argEnumerator, "word", this.opErrorMsg);
+        let operation = this.readNextToken(argEnumerator, "word", this.opErrorMsg, "");
         let prefix = this.readNextToken(argEnumerator, "word", this.prErrorMsg, "");
 
-        if (operation != "get" && prefix == "") {
+        if (operation != "get" && operation != "" && prefix == "") {
             throw new SyntaxError(argEnumerator, this.prErrorMsg);
         }
 
@@ -35,7 +35,10 @@ export class PrefixCommand extends Command {
             
             case "add":
                 if (guildData.prefixes.findIndex(p => p == prefix) != -1) {
-                    throw new Error(`префикс ${prefix} уже существует`);
+                    throw new Error(`префикс \`${prefix}\` уже существует`);
+                }
+                if (prefix.includes(" ")) {
+                    throw new SyntaxError(prefix, `префикс \`${prefix}\` содержит пробелы`);
                 }
                 guildData.prefixes.push(prefix);
                 await msg.reply(`для команд добавлен новый префикс \`${prefix}\``);
@@ -53,6 +56,7 @@ export class PrefixCommand extends Command {
                 await msg.reply(`префикс \`${prefix}\` успешно удалён из списка`);
                 break;
             
+            case "":
             case "get":
                 await msg.reply(`Список префиксов для команд: \`${guildData.prefixes.join("\`, \`")}\``);
                 break;
