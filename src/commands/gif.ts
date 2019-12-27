@@ -1,6 +1,6 @@
 import { Command, CommandInfo, ArgumentEnumerator, SyntaxArgument } from "../command";
-import { Message, RichEmbed } from "discord.js";
 import { getMemberFromMention, getRandomFromArray } from "../utils";
+import { Message, RichEmbed, GuildMember } from "discord.js";
 
 function generateGifCommand(className:string, name: string, description: string, syntax: SyntaxArgument[], message: string, gifs?: string[]) {
     module.exports[className] = class Generic extends Command {
@@ -13,9 +13,12 @@ function generateGifCommand(className:string, name: string, description: string,
 
         async run(msg: Message, argEnumerator: ArgumentEnumerator) {
             let targetMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера", "");
-            let target = getMemberFromMention(msg.guild, targetMention);
+            let target: GuildMember | undefined = targetMention != "" ? getMemberFromMention(msg.guild, targetMention) : undefined;
 
-            message = message.replace("%author%", `**${msg.member.displayName}**`).replace("%target%", `**${target.displayName}**`);
+            message = message.replace("%author%", `**${msg.member.displayName}**`);
+            if (target) {
+                message = message.replace("%target%", `**${target.displayName}**`);
+            }
 
             let embed: RichEmbed | undefined = undefined;
             if (gifs) {
@@ -34,4 +37,8 @@ generateGifCommand("HugCommand", "hug", "ты обнимаешь `member`", [["u
     "https://media.giphy.com/media/42YlR8u9gV5Cw/giphy.gif",
     "https://media.giphy.com/media/JzsG0EmHY9eKc/giphy.gif",
     "https://media.giphy.com/media/KL7xA3fLx7bna/giphy.gif"
+]);
+
+generateGifCommand("ToBeContCommand", "tobecont", "*to be continued*", [], "*продолжение следует...*", [
+    "https://avatanplus.com/files/resources/mid/595bf680e03ca15d0f3ae796.png"
 ]);
