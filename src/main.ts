@@ -198,7 +198,7 @@ bot.on("message", async msg => {
                 return;
             }
 
-            await runCommand(msg, noPrefixContent, command);
+            await runCommand(msg, noPrefixContent.slice(cname.length), command);
         }
     }
 });
