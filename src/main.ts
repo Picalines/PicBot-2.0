@@ -2,12 +2,13 @@ import { delay, Enumerator, stringDiff, generateErrorEmbed, colors, emojis } fro
 import { loadCommands, findCommand, commandTokenizer, Command } from "./command";
 import { getGuildData, deleteGuildData, GuildData } from "./guildData";
 import { IProgression } from "./commands/progress";
+import { google, youtube_v3 } from "googleapis";
 import { getLevel } from "./commands/stats";
 import * as database from "./database";
 import * as Discord from "discord.js";
+import { Property } from "./property";
 import * as dotenv from "dotenv";
 import { Debug } from "./debug";
-import { Property } from "./property";
 
 if (process.env.NODE_ENV !== 'production') {
     dotenv.config();
@@ -35,6 +36,11 @@ if (process.env.DISCORD_TOKEN) {
 else {
     throw new Error("discord token is undefined");
 }
+
+export var youtube = google.youtube({
+    auth: process.env.GOOGLE_API_KEY,
+    version: "v3",
+});
 
 bot.on("ready", async () => {
     await loadCommands();
