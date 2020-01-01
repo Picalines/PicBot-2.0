@@ -4,11 +4,44 @@ import { colors, timestamp, emojis } from "../utils";
 import { setInterval } from "timers";
 import { Readable } from "stream";
 import ytdl from "ytdl-core";
+import { youtube } from "../main";
+
+interface IVideoInfo {
+    readonly id: string;
+    readonly title: string;
+    readonly author: string;
+    readonly duration: string;
+}
 
 interface IQueueItem {
-    readonly link: string;
-    readonly info: ytdl.videoInfo;
+    readonly info: IVideoInfo;
     readonly msg: Message;
+}
+
+const videoUrlStart = "https://www.youtube.com/watch?v=";
+const maxSearchResults = 5;
+
+/* https://gist.github.com/takien/4077195 */
+function getVideoID(url: string): string {
+    let s = url.split(/(vi\/|v%3D|v=|\/v\/|youtu\.be\/|\/embed\/)/);
+    return undefined !== s[2] ? s[2].split(/[^0-9a-z_\-]/i)[0] : s[0];
+}
+
+const isoRegex = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/;
+
+function iso6801toHHMMSS(input: string): string {
+    let hours = 0, minutes = 0, seconds = 0;
+
+    let matches = isoRegex.exec(input);
+    if (!matches) return ":/";
+
+    hours = Number(matches[1] || 0);
+    minutes = Number(matches[2] || 0);
+    seconds = Number(matches[3] || 0);
+
+    return hours.toString().padStart(2, '0') + ':' +
+        minutes.toString().padStart(2, '0') + ':' +
+        seconds.toString().padStart(2, '0');
 }
 
 export class PlayCommand extends Command {
@@ -59,35 +92,88 @@ export class PlayCommand extends Command {
             throw new Error("я не могу подключиться к этому голосовому каналу");
         }
 
-        let link = this.readNextToken(argEnumerator, "word", this.invalidLinkMsg);
-        if (!ytdl.validateURL(link)) {
-            throw new Error(this.invalidLinkMsg);
-        }
-
-        
-        let info: ytdl.videoInfo;
-        try {
-            info = await ytdl.getBasicInfo(link);
-        }
-        catch (err) {
-            throw new Error("Не удалось получить информацию о треке");
-        }
-        
         if (this.queues[msg.guild.id] == undefined) {
             this.queues[msg.guild.id] = [];
         }
 
-        this.queues[msg.guild.id].push({
-            link: link,
-            msg: msg,
-            info: info
-        });
+        let arg = msg.content.split(this.info.name, 2)[1].slice(1);
+
+        if (ytdl.validateURL(arg)) {
+            let info: ytdl.videoInfo;
+            try {
+                info = await ytdl.getBasicInfo(arg);
+            }
+            catch (err) {
+                throw new Error("Не удалось получить информацию о треке");
+            }
+            this.queues[msg.guild.id].push({
+                msg: msg,
+                info: {
+                    id: getVideoID(arg),
+                    title: info.title,
+                    author: info.author.name,
+                    duration: timestamp(Number(info.length_seconds))
+                }
+            });
+        }
+        else {
+            const videos = await youtube.search.list({
+                maxResults: maxSearchResults,
+                type: "video",
+                part: "id",
+                q: arg,
+            });
+
+            if (!videos.data.items || videos.data.items.length == 0) {
+                throw new Error("ничего не найдено");
+            }
+
+            const infoPromises: Promise<ytdl.videoInfo>[] = [];
+            for (let item of videos.data.items) {
+                if (item.id?.videoId) {
+                    infoPromises.push(ytdl.getBasicInfo(videoUrlStart + item.id.videoId));
+                }
+            }
+
+            const basicInfos: ytdl.videoInfo[] = await Promise.all(infoPromises);
+            const infos: IVideoInfo[] = basicInfos.map((i): IVideoInfo => ({
+                id: i.video_id,
+                author: i.author.name,
+                duration: timestamp(Number(i.length_seconds)),
+                title: i.title
+            }));
+
+            const searchEmbed = new RichEmbed();
+            searchEmbed.setColor(colors.AQUA);
+            searchEmbed.setTitle(`Выберете 1 из ${infos.length} результатов поиска`);
+            infos.forEach((i, index) => searchEmbed.addField(`[${index + 1}] ${i.title}`, `Автор: ${i.author}\nПродолжительность: ${i.duration}`));
+
+            await msg.channel.send(searchEmbed);
+
+            const filter = (m: Message) => m.author == msg.author && !isNaN(Number(m.content));
+            const collected = await msg.channel.awaitMessages(filter, { time: 15000, maxMatches: 1 });
+            if (collected.size == 0) {
+                throw new Error("Трек не выбран. Ну и ладно...");
+            }
+
+            const choiceIndex = Number(collected.first().content) - 1;
+            if (isNaN(choiceIndex) || choiceIndex < 0 || choiceIndex >= infos.length) {
+                throw new Error("Странный номер трека...");
+            }
+
+            const choice = infos[choiceIndex];
+
+            this.queues[msg.guild.id].push({
+                msg: msg,
+                info: choice
+            });
+        }
 
         await msg.reply("трек добавлен в очередь");
-        
+
         if (!this.connectedTo(msg.member.voiceChannel)) {
             let connection = await msg.member.voiceChannel.join();
-            
+
             this.timeOuts[msg.member.guild.id] = setInterval(() => {
                 this.checkChannel(connection?.channel);
             }, 10000);
@@ -105,7 +191,7 @@ export class PlayCommand extends Command {
 
         const queue = this.queues[serverId];
         const current = queue ? queue.shift() : undefined;
-        
+
         if (!queue || !current) {
             channel.leave();
             delete this.queues[serverId];
@@ -113,11 +199,13 @@ export class PlayCommand extends Command {
             return;
         }
 
+        const link = videoUrlStart + current.info.id;
+
         this.playing[serverId] = current;
 
         let playable: Readable;
         try {
-            playable = ytdl(current.link, { "filter": "audioonly" });
+            playable = ytdl(link, { "filter": "audioonly" });
         }
         catch (err) {
             await current.msg.channel.send(`не удалось загрузить трек '${current.info.title}'`);
@@ -129,10 +217,9 @@ export class PlayCommand extends Command {
         embed.setColor(colors.RED);
         embed.setTitle("**Играет следующий трек из очереди!**");
         embed.setFooter(`Предложил(а) ${current.msg.member.displayName}`, current.msg.author.avatarURL);
-        embed.setThumbnail(current.info.thumbnail_url);
         embed.addField("Название", current.info.title);
-        embed.addField("Продолжительность", timestamp(Number(current.info.length_seconds)));
-        embed.addField("Ссылка", current.link);
+        embed.addField("Продолжительность", current.info.duration);
+        embed.addField("Ссылка", link);
 
         await current.msg.channel.send(embed);
 
@@ -186,7 +273,7 @@ export class CurrentQueueCommand extends Command {
     };
 
     private formatQueueItem(item: IQueueItem): string {
-        return item.info.title + `(${timestamp(Number(item.info.length_seconds))})`
+        return item.info.title + `(${item.info.duration})`
     }
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
@@ -197,7 +284,7 @@ export class CurrentQueueCommand extends Command {
             await msg.reply("очередь треков пуста");
             return;
         }
-        
+
         let qEmbed = new RichEmbed();
         qEmbed.setColor(colors.AQUA);
         qEmbed.setTitle("**Очередь треков**");
@@ -262,19 +349,19 @@ export class StopCommand extends Command {
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         checkAvailable(msg);
-        
+
         let voiceChannel = msg.member.voiceChannel;
-        
+
         async function stop() {
             voiceChannel.connection.dispatcher.end("stopCommand");
             await msg.reply("музыка (*надеюсь*) успешно остановлена");
         }
-        
+
         if (voiceChannel.members.size == 2) {
             await stop();
             return;
         }
-        
+
         await msg.react(emojis.thumbsup);
 
         const filter = (r: any, u: any) => r.emoji == emojis.thumbsup && u != msg.author;
