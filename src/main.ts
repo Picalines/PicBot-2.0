@@ -37,7 +37,7 @@ else {
     throw new Error("discord token is undefined");
 }
 
-export var youtube = google.youtube({
+export const youtube = google.youtube({
     auth: process.env.GOOGLE_API_KEY,
     version: "v3",
 });
