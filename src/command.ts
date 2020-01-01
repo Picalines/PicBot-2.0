@@ -54,6 +54,7 @@ export abstract class Command {
     }
 
     //dev utils
+
     protected readNextToken(argEnumerator: ArgumentEnumerator, type: ArgumentType, syntaxErrMsg: string, defaultValue?: string): string {
         if (!argEnumerator.moveNext()) {
             if (defaultValue == undefined) {
@@ -67,6 +68,21 @@ export abstract class Command {
             throw new SyntaxError(argEnumerator, syntaxErrMsg);
         }
         return argEnumerator.current().value;
+    }
+
+    protected readText(argEnumerator: ArgumentEnumerator, matchEnd?: (t: Token) => boolean): string {
+        if (matchEnd == undefined) {
+            matchEnd = () => false;
+        }
+
+        let result = "";
+        while (argEnumerator.moveNext()) {
+            if (!matchEnd(argEnumerator.current())) {
+                result += argEnumerator.current().value + " ";
+            }
+        }
+
+        return result.slice(0, -1);
     }
 }
 

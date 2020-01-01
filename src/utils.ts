@@ -10,16 +10,6 @@ export function delay(ms: number) {
 
 export const nameof = <T>(name: keyof T): string => name.toString();
 
-export function stringDiff(a: string, b: string){ 
-    let diff = "";
-    b.split('').forEach((char, i) => {
-        if (char != a.charAt(i)) {
-            diff += char;
-        }
-    });
-    return diff;
-}
-
 export interface ISerializeable {
     serialize(): {};
 }
@@ -124,6 +114,11 @@ export function generateErrorEmbed(message: Error | string, includeSmile?: boole
     let errorEmbed = new RichEmbed();
     errorEmbed.setTitle(`**Произошла ошибка**`);
     errorEmbed.setColor(colors.RED);
+
+    if (message == "Cannot send an empty message") {
+        message = "Нельзя отослать пустое сообщение";
+    }
+
     let desc = (message instanceof Error ? message.message : message) + (includeSmile != false ? " :/" : "");
     try {
         errorEmbed.setDescription(desc);

@@ -29,21 +29,6 @@ function getVideoID(url: string): string {
 
 const isoRegex = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/;
 
-function iso6801toHHMMSS(input: string): string {
-    let hours = 0, minutes = 0, seconds = 0;
-
-    let matches = isoRegex.exec(input);
-    if (!matches) return ":/";
-
-    hours = Number(matches[1] || 0);
-    minutes = Number(matches[2] || 0);
-    seconds = Number(matches[3] || 0);
-
-    return hours.toString().padStart(2, '0') + ':' +
-        minutes.toString().padStart(2, '0') + ':' +
-        seconds.toString().padStart(2, '0');
-}
-
 export class PlayCommand extends Command {
     info: CommandInfo = {
         name: "play",
@@ -96,7 +81,11 @@ export class PlayCommand extends Command {
             this.queues[msg.guild.id] = [];
         }
 
-        let arg = msg.content.split(this.info.name, 2)[1].slice(1);
+        let arg = this.readText(argEnumerator);
+
+        if (arg == "") {
+            throw new Error(this.invalidLinkMsg);
+        }
 
         if (ytdl.validateURL(arg)) {
             let info: ytdl.videoInfo;

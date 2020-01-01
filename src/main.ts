@@ -1,12 +1,13 @@
-import { delay, Enumerator, stringDiff, generateErrorEmbed, colors, emojis } from "./utils";
-import { loadCommands, findCommand, commandTokenizer, Command } from "./command";
+import { loadCommands, findCommand, commandTokenizer, Command, commands } from "./command";
+import { delay, Enumerator, generateErrorEmbed, colors, emojis } from "./utils";
 import { getGuildData, deleteGuildData, GuildData } from "./guildData";
 import { IProgression } from "./commands/progress";
-import { google, youtube_v3 } from "googleapis";
+import { findBestMatch } from "string-similarity";
 import { getLevel } from "./commands/stats";
 import * as database from "./database";
 import * as Discord from "discord.js";
 import { Property } from "./property";
+import { google } from "googleapis";
 import * as dotenv from "dotenv";
 import { Debug } from "./debug";
 
@@ -130,13 +131,13 @@ async function handleNewLevel(msg: Discord.Message, guildData: GuildData, xpProp
 bot.on("message", async msg => {
     if (msg.member.user && msg.member.user.bot) return;
 
-    let guildData = getGuildData(msg);
-    let acc = guildData.getAccount(msg.member);
+    const guildData = getGuildData(msg);
+    const acc = guildData.getAccount(msg.member);
 
-    let xpProp = acc.getProperty("xp", 0);
-    let oldLevel = getLevel(xpProp.value);
+    const xpProp = acc.getProperty("xp", 0);
+    const oldLevel = getLevel(xpProp.value);
     xpProp.value += 1;
-    let newLevel = getLevel(xpProp.value);
+    const newLevel = getLevel(xpProp.value);
 
     if (oldLevel != newLevel) {
         await handleNewLevel(msg, guildData, xpProp, newLevel);
@@ -158,53 +159,46 @@ bot.on("message", async msg => {
 
     if (prefix == undefined) return;
 
-    let noPrefixContent = msg.content.slice(prefix.length).toLowerCase();
-
-    let cname = noPrefixContent.split(" ")[0] || "";
-    let nearest = ["", Number.MAX_SAFE_INTEGER];
-
-    let command = findCommand(c => {
-        let diff = stringDiff(cname, c.info.name);
-        if (diff.length < nearest[1]) {
-            nearest = [c.info.name, diff.length];
-        }
-        return cname == c.info.name;
-    });
+    const noPrefixContent = msg.content.slice(prefix.length).toLowerCase();
+    const cname = noPrefixContent.split(" ")[0] || "";
+    let command = findCommand(c => cname == c.info.name);
 
     if (command != undefined) {
         if (!command.checkPermission(msg.member)) {
             await msg.reply("ты не можешь использовать эту команду :/");
-            return;
         }
-
-        await runCommand(msg, noPrefixContent, command);
+        else {
+            await runCommand(msg, noPrefixContent, command);
+        }
     }
     else {
         let errMsg = `Команда \`${cname}\` не найдена`;
-        if (nearest[1] > 2) {
-            await msg.reply(generateErrorEmbed(errMsg))
-            return;
-        }
+
+        const commandNames = commands.map(c => c.info.name);
+        const bestMatches = findBestMatch(cname, commandNames);
+        const nearest = bestMatches.bestMatch.target;
         
-        errMsg += `. Возможно вы имели в виду \`${nearest[0]}\`? Если да, то жми на ${emojis.repair}`;
+        errMsg += `. Возможно вы имели в виду \`${nearest}\`? Если да, то жми на ${emojis.repair}`;
         
-        let rmsg = await msg.reply(generateErrorEmbed(errMsg, false)) as Discord.Message;
+        const rmsg = await msg.reply(generateErrorEmbed(errMsg, false)) as Discord.Message;
         await rmsg.react(emojis.repair);
+
         const filter = (r: any, u: any) => r.emoji.name == emojis.repair && u == msg.author;
+
         let collected = await rmsg.awaitReactions(filter, { time: 10000, max: 1 });
         if (collected.size > 0) {
             if (rmsg.deletable) {
                 await rmsg.delete();
             }
             
-            command = findCommand(c => c.info.name == nearest[0]);
+            command = findCommand(c => c.info.name == nearest);
 
             if (command == undefined) {
                 await msg.reply(generateErrorEmbed("произошла неизвестная ошибка"));
-                return;
             }
-
-            await runCommand(msg, noPrefixContent.slice(cname.length), command);
+            else {
+                await runCommand(msg, noPrefixContent.slice(cname.length), command);
+            }
         }
     }
 });

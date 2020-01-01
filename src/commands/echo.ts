@@ -10,7 +10,7 @@ export class EchoCommand extends Command {
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        const message = msg.content.split(this.info.name, 2)[1].slice(1);
+        const message = this.readText(argEnumerator);
 
         await msg.channel.send(message);
 
