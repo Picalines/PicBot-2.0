@@ -9,12 +9,11 @@ export class EchoCommand extends Command {
         permission: "everyone"
     };
 
-    private readonly regex = /(^")|("$)|(^')|('$)/g;
-
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        let message: string;
-        message = this.readNextToken(argEnumerator, "string", "ожидалось сообщение");
-        await msg.channel.send(message.replace(this.regex, ""));
+        const message = msg.content.split(this.info.name, 2)[1].slice(1);
+
+        await msg.channel.send(message);
+
         if (msg.deletable) {
             await msg.delete();
         }
