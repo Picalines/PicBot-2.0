@@ -3,8 +3,8 @@ import { Message, RichEmbed, Guild, VoiceChannel, GuildMember } from "discord.js
 import { colors, timestamp, emojis } from "../utils";
 import { setInterval } from "timers";
 import { Readable } from "stream";
-import ytdl from "ytdl-core";
 import { youtube } from "../main";
+import ytdl from "ytdl-core";
 
 interface IVideoInfo {
     readonly id: string;
@@ -26,8 +26,6 @@ function getVideoID(url: string): string {
     let s = url.split(/(vi\/|v%3D|v=|\/v\/|youtu\.be\/|\/embed\/)/);
     return undefined !== s[2] ? s[2].split(/[^0-9a-z_\-]/i)[0] : s[0];
 }
-
-const isoRegex = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/;
 
 export class PlayCommand extends Command {
     info: CommandInfo = {
@@ -317,7 +315,7 @@ export class SkipCommand extends Command {
             throw new Error("Бот не играет музыку");
         }
 
-        if (current.msg.author == msg.author) {
+        if (current.msg.author == msg.author || msg.member.permissions.has('ADMINISTRATOR')) {
             msg.member.voiceChannel.connection.dispatcher.end("skipCommand")
             await msg.reply("трек успешно пропущен");
         }
@@ -346,7 +344,7 @@ export class StopCommand extends Command {
             await msg.reply("музыка (*надеюсь*) успешно остановлена");
         }
 
-        if (voiceChannel.members.size == 2) {
+        if (msg.member.permissions.has('ADMINISTRATOR') || voiceChannel.members.size == 2) {
             await stop();
             return;
         }
