@@ -9,9 +9,9 @@ interface CommandList {
 }
 
 function compareCommands(a: CommandInfo, b: CommandInfo): number {
-    let aSyntaxLength = a.syntax != undefined ? a.syntax.length : 0;
-    let bSyntaxLength = b.syntax != undefined ? b.syntax.length : 0;
-    return (a.name.length + aSyntaxLength) - (b.name.length + bSyntaxLength);
+    let aSyntaxLength = a.syntax != undefined ? Command.syntaxToString(a.syntax).length : 0;
+    let bSyntaxLength = b.syntax != undefined ? Command.syntaxToString(b.syntax).length : 0;
+    return (a.name.length + aSyntaxLength + a.description.length) - (b.name.length + bSyntaxLength + b.description.length);
 }
 
 function compareCommandList(a: CommandList, b: CommandList): number {
@@ -103,7 +103,7 @@ export class HelpCommand extends Command {
     }
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        let name = this.readNextToken(argEnumerator, "word", "Ожидалось имя команды", "__all_list");
+        const name = this.readNextToken(argEnumerator, "word", "Ожидалось имя команды", "__all_list");
         if (name == "__all_list") {
             await msg.channel.send(`${msg.member}, для помощи по типам аргументов юзай \`help ${this.argTypeArg}\``, this.generateList(msg.member));
         }

@@ -11,7 +11,7 @@ export class ProgressCommand extends Command {
     info: CommandInfo = {
         name: "progress",
         syntax: [["word", "add|rm|clear"], ["role", "role"], ["int", "lvl"]],
-        description: "ставит точку прогрессии, когда на уровне `lvl` нужно добавить / удалить роль `role`",
+        description: "ставит точку прогрессии, когда на уровне `lvl` нужно добавить (`add`) / удалить (`rm`) роль `role` (`clear` сбрасывает всю прогрессию)",
         permission: "owner",
         group: "Настройки"
     };

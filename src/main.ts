@@ -159,8 +159,8 @@ bot.on("message", async msg => {
 
     if (prefix == undefined) return;
 
-    const noPrefixContent = msg.content.slice(prefix.length).toLowerCase();
-    const cname = noPrefixContent.split(" ")[0] || "";
+    const noPrefixContent = msg.content.slice(prefix.length);
+    const cname = (noPrefixContent.split(" ")[0] || "").toLowerCase();
     let command = findCommand(c => cname == c.info.name);
 
     if (command != undefined) {
