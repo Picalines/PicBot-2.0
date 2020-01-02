@@ -70,15 +70,20 @@ export abstract class Command {
         return argEnumerator.current().value;
     }
 
-    protected readText(argEnumerator: ArgumentEnumerator, matchEnd?: (t: Token) => boolean): string {
+    protected readText(argEnumerator: ArgumentEnumerator, matchEnd?: (t: Token) => boolean, removeStringChars: boolean = false): string {
         if (matchEnd == undefined) {
             matchEnd = () => false;
         }
 
         let result = "";
         while (argEnumerator.moveNext()) {
-            if (!matchEnd(argEnumerator.current())) {
-                result += argEnumerator.current().value + " ";
+            const t = argEnumerator.current();
+            if (!matchEnd(t)) {
+                let v = t.value;
+                if (t.type == "string" && removeStringChars) {
+                    v = v.replace(/^("|')/, "").replace(/("|')$/, "");
+                }
+                result += v + " ";
             }
         }
 
