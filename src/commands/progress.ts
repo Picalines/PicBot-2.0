@@ -1,7 +1,9 @@
+import { getRoleFromMention, generateErrorEmbed, colors } from "../utils";
+import { Message, GuildMember, TextChannel, RichEmbed } from "discord.js";
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
-import { Message } from "discord.js";
 import { getGuildData } from "../guildData";
-import { getRoleFromMention } from "../utils";
+import { getAccount } from "../account";
+import { getLevel } from "./stats";
 
 export interface IProgression {
     [i: number]: { [0]: "add" | "rm", [1]: string }[]
@@ -67,5 +69,66 @@ export class ProgressCommand extends Command {
         prop.value = JSON.stringify(progression);
 
         await msg.reply("настройки прогрессии успешно обновлены");
+    }
+}
+
+export async function handleProgression(member: GuildMember, channel?: TextChannel) {
+    const guildData = getGuildData(member);
+    const lvl = getLevel(getAccount(member).getProperty<number>("xp", 0).value);
+
+    if (channel === undefined) {
+        channel = member.guild.systemChannel as TextChannel;
+    }
+
+    const progressionProp = guildData.getProperty<string>("progression");
+    if (!progressionProp) {
+        return;
+    }
+
+    const progression: IProgression = JSON.parse(progressionProp.value);
+    if (!progression[lvl]) {
+        return;
+    }
+
+    if (!member.guild.me.permissions.has("MANAGE_ROLES")) {
+        await channel.send(generateErrorEmbed(`у меня нет права на управление ролями, из-за чего ${member.displayName} не может прогрессировать!`));
+    }
+
+    let desc = "";
+
+    for (let i in progression[lvl]) {
+        const action = progression[lvl][i];
+
+        const role = member.guild.roles.find(r => r.id == action[1]);
+        if (!role) {
+            await channel.send(generateErrorEmbed(`не могу найти роль ${action[1]}. Орите на владельца сервера!`));
+            continue;
+        }
+
+        const reason = `Получен уровень ${lvl}`;
+        await member[action[0] == "add" ? "addRole" : "removeRole"](role, reason);
+        desc += `${action[0] == "add" ? "получена": "потеряна"} роль ${role.name}\n`;
+    }
+
+    const progressEmbed = new RichEmbed();
+    progressEmbed.setTitle(`${member.displayName} прогрессирует!`);
+    progressEmbed.setThumbnail(member.user.avatarURL);
+    progressEmbed.setColor(colors.BLUE);
+
+    let err: RangeError | undefined = undefined;
+    try {
+        progressEmbed.setDescription(desc);
+    }
+    catch (err2) {
+        if (err2 instanceof RangeError) {
+            err = err2; 
+        }
+    }
+
+    if (err) {
+        await channel.send(`${member}, прогрессируешь!\n${desc}`);
+    }
+    else {
+        await channel.send(progressEmbed);
     }
 }

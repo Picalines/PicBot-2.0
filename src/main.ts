@@ -1,7 +1,8 @@
-import { getLevel, handleNewLevel, handleProgression } from "./commands/stats";
 import { loadCommands, findCommand, commands, runCommand } from "./command";
 import { delay, generateErrorEmbed, emojis } from "./utils";
 import { getGuildData, deleteGuildData } from "./guildData";
+import { getLevel, handleNewLevel } from "./commands/stats";
+import { handleProgression } from "./commands/progress";
 import { findBestMatch } from "string-similarity";
 import * as database from "./database";
 import * as Discord from "discord.js";
