@@ -1,9 +1,9 @@
-import { readdirAsync } from "./fsAsync";
-import * as Discord from "discord.js";
-import { Enumerator } from "./utils";
+import { Enumerator, generateErrorEmbed } from "./utils";
 import { Token, Tokenizer } from "./tokenizer";
-import { Debug } from "./debug";
+import { readdirAsync } from "./fsAsync";
 import { SyntaxError } from "./error";
+import * as Discord from "discord.js";
+import { Debug } from "./debug";
 
 export type CommandPermission = "everyone" | "admin" | "owner";
 
@@ -135,4 +135,15 @@ export async function loadCommands() {
         }
     });
     Debug.Log("commands successfully loaded");
+}
+
+export async function runCommand(msg: Discord.Message, content: string, command: Command) {
+    let input = content.slice(command.info.name.length);
+    let inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
+    try {
+        await command.run(msg, new Enumerator(inputTokens));
+    }
+    catch (err) {
+        await msg.reply(generateErrorEmbed(err));
+    }
 }

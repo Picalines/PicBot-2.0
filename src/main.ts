@@ -1,12 +1,10 @@
-import { loadCommands, findCommand, commandTokenizer, Command, commands } from "./command";
-import { delay, Enumerator, generateErrorEmbed, colors, emojis } from "./utils";
-import { getGuildData, deleteGuildData, GuildData } from "./guildData";
-import { IProgression } from "./commands/progress";
+import { getLevel, handleNewLevel, handleProgression } from "./commands/stats";
+import { loadCommands, findCommand, commands, runCommand } from "./command";
+import { delay, generateErrorEmbed, emojis } from "./utils";
+import { getGuildData, deleteGuildData } from "./guildData";
 import { findBestMatch } from "string-similarity";
-import { getLevel } from "./commands/stats";
 import * as database from "./database";
 import * as Discord from "discord.js";
-import { Property } from "./property";
 import { google } from "googleapis";
 import * as dotenv from "dotenv";
 import { Debug } from "./debug";
@@ -35,86 +33,6 @@ bot.on("ready", async () => {
     await database.load();
 });
 
-async function runCommand(msg: Discord.Message, content: string, command: Command) {
-    let input = content.slice(command.info.name.length);
-    let inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
-    try {
-        await command.run(msg, new Enumerator(inputTokens));
-    }
-    catch (err) {
-        await msg.reply(generateErrorEmbed(err));
-    }
-}
-
-async function handleNewLevel(msg: Discord.Message, guildData: GuildData, xpProp: Property<number>, newLevel: number) {
-    let levelEmbed = new Discord.RichEmbed();
-    levelEmbed.setTitle(`${msg.member.displayName} повысил свой уровень!`);
-    levelEmbed.setThumbnail(msg.member.user.avatarURL);
-    levelEmbed.setColor(colors.AQUA);
-    levelEmbed.addField("Опыт", xpProp.value, true);
-    levelEmbed.addField("Уровень", newLevel, true);
-
-    let levelMsg = (await msg.channel.send(levelEmbed)) as Discord.Message;
-    delay(20000).then(() => {
-        if (levelMsg?.deletable) {
-            levelMsg.delete();
-        }
-    });
-
-    let progressionProp = guildData.getProperty<string>("progression");
-    if (!progressionProp) {
-        return;
-    }
-
-    let progression: IProgression = JSON.parse(progressionProp.value);
-    if (!progression[newLevel]) {
-        return;
-    } else if (!msg.guild.me.permissions.has("MANAGE_ROLES")) {
-        await msg.channel.send(generateErrorEmbed(`у меня нет права на управление ролями, из-за чего ${msg.member} не может прогрессировать!`));
-    }
-
-    let progressEmbed = new Discord.RichEmbed();
-    progressEmbed.setTitle(`${msg.member.displayName} прогрессирует!`);
-    progressEmbed.setThumbnail(msg.member.user.avatarURL);
-    progressEmbed.setColor(colors.BLUE);
-
-    let desc = "";
-
-    for (let i in progression[newLevel]) {
-        let action = progression[newLevel][i];
-
-        let role = msg.guild.roles.find(r => r.id == action[1]);
-        if (!role) {
-            await msg.channel.send(generateErrorEmbed(`не могу найти роль ${action[1]}. Орите на владельца сервера!`));
-            continue;
-        }
-
-        let reason = `Получен уровень ${newLevel}`;
-        try {
-            await msg.member[action[0] == "add" ? "addRole" : "removeRole"](role, reason);
-            desc += `${action[0] == "add" ? "получена": "потеряна"} роль ${role.name}\n`;
-        }
-        catch (err) { }
-    }
-
-    let err: RangeError | undefined = undefined;
-    try {
-        progressEmbed.setDescription(desc);
-    }
-    catch (err2) {
-        if (err2 instanceof RangeError) {
-            err = err2; 
-        }
-    }
-
-    if (err) {
-        await msg.reply(`прогрессируешь!\n${desc}`);
-    }
-    else {
-        await msg.channel.send(progressEmbed);
-    }
-}
-
 bot.on("message", async msg => {
     if (msg.member.user && msg.member.user.bot) return;
 
@@ -124,10 +42,9 @@ bot.on("message", async msg => {
     const xpProp = acc.getProperty("xp", 0);
     const oldLevel = getLevel(xpProp.value);
     xpProp.value += 1;
-    const newLevel = getLevel(xpProp.value);
 
-    if (oldLevel != newLevel) {
-        await handleNewLevel(msg, guildData, xpProp, newLevel);
+    if (oldLevel != getLevel(xpProp.value)) {
+        await handleNewLevel(msg);
     }
 
     if (guildData.prefixes.length == 0) {
@@ -136,8 +53,7 @@ bot.on("message", async msg => {
     }
 
     let prefix: string | undefined = undefined;
-    for (let i in guildData.prefixes) {
-        let p = guildData.prefixes[i];
+    for (const p of guildData.prefixes) {
         if (msg.content.toLowerCase().startsWith(p.toLowerCase())) {
             prefix = p;
             break
@@ -197,7 +113,8 @@ bot.on("guildBanRemove", async (guild, user) => {
 
 bot.on("guildMemberAdd", async member => {
     let ch = member.guild.systemChannel as Discord.TextChannel;
-    await ch?.send(`Здравствуй, *${member.displayName}*!`);
+    await ch?.send(`Здравствуй, *${member}*!`);
+    await handleProgression(member, ch);
 });
 
 bot.on("guildMemberRemove", member => {
