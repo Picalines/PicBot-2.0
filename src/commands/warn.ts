@@ -86,7 +86,7 @@ export class MaxWarnsCommand extends Command {
         syntax: [["int", "n"]],
         description: "ставит максимальное число предупреждений до бана",
         permission: "admin",
-        group: "Администрирование"
+        group: "Настройки"
     };
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
@@ -96,5 +96,6 @@ export class MaxWarnsCommand extends Command {
         }
 
         getGuildData(msg).setProperty("maxWarns", n);
+        await msg.channel.send("Новое максимальное число предупреждений: " + n.toString());
     }
 }
