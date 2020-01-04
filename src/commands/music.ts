@@ -93,13 +93,19 @@ export class PlayCommand extends Command {
             catch (err) {
                 throw new Error("Не удалось получить информацию о треке");
             }
+
+            const length = Number(info.length_seconds);
+            if (isNaN(length) || length == 0) {
+                throw new Error("Я не могу (*или не хочу*) играть этот трек");
+            }
+
             this.queues[msg.guild.id].push({
                 msg: msg,
                 info: {
                     id: getVideoID(arg),
                     title: info.title,
                     author: info.author.name,
-                    duration: timestamp(Number(info.length_seconds))
+                    duration: timestamp(length)
                 }
             });
         }
@@ -115,12 +121,8 @@ export class PlayCommand extends Command {
                 throw new Error("ничего не найдено");
             }
 
-            const infoPromises: Promise<ytdl.videoInfo>[] = [];
-            for (let item of videos.data.items) {
-                if (item.id?.videoId) {
-                    infoPromises.push(ytdl.getBasicInfo(videoUrlStart + item.id.videoId));
-                }
-            }
+            const infoPromises: Promise<ytdl.videoInfo>[] = videos.data.items
+                .map(item => ytdl.getBasicInfo(videoUrlStart + (item.id ? item.id.videoId : "")));
 
             const basicInfos: ytdl.videoInfo[] = await Promise.all(infoPromises);
             const infos: IVideoInfo[] = basicInfos.map((i): IVideoInfo => ({
@@ -128,12 +130,17 @@ export class PlayCommand extends Command {
                 author: i.author.name,
                 duration: timestamp(Number(i.length_seconds)),
                 title: i.title
-            }));
+            })).filter(i => i.duration != "00:00:00");
+
+            if (infos.length == 0) {
+                throw new Error("ничего не найдено");
+            }
 
             const searchEmbed = new RichEmbed();
             searchEmbed.setColor(colors.AQUA);
             searchEmbed.setTitle(`Выберете 1 из ${infos.length} результатов поиска`);
-            infos.forEach((i, index) => searchEmbed.addField(`[${index + 1}] ${i.title}`, `Автор: ${i.author}\nПродолжительность: ${i.duration}`));
+            infos.forEach((i, index) => searchEmbed
+                .addField(`[${index + 1}] ${i.title}`, `Автор: ${i.author}\nПродолжительность: ${i.duration}`));
 
             await msg.channel.send(searchEmbed);
 
@@ -177,7 +184,12 @@ export class PlayCommand extends Command {
         const serverId = channel.guild.id;
 
         const queue = this.queues[serverId];
-        const current = queue ? queue.shift() : undefined;
+        let current = queue ? queue.shift() : undefined;
+
+        while (current?.info.duration == "00:00:00") {
+            await current.msg.reply("твой трек пропущен, ибо каким-то магическим образом он оказался прямой трансляцией");
+            current = queue ? queue.shift() : undefined;
+        }
 
         if (!queue || !current) {
             channel.leave();
@@ -204,7 +216,7 @@ export class PlayCommand extends Command {
         embed.setColor(colors.RED);
         embed.setTitle("**Играет следующий трек из очереди!**");
         embed.setFooter(`Предложил(а) ${current.msg.member.displayName}`, current.msg.author.avatarURL);
-        embed.addField("Название", current.info.title);
+        embed.addField("Автор - название", current.info.author + " - " + current.info.title);
         embed.addField("Продолжительность", current.info.duration);
         embed.addField("Ссылка", link);
 
