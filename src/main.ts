@@ -17,22 +17,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 export const bot = new Discord.Client();
 
-export var botOwner: Discord.User | undefined = undefined;
-
 if (process.env.DISCORD_TOKEN) {
     Debug.Log("Logging in discord...");
-    bot.login(process.env.DISCORD_TOKEN).then(async () => {
-        Debug.Log("Successfully logged in discord!")
-        if (process.env.BOT_OWNER_ID) {
-            botOwner = await bot.fetchUser(process.env.BOT_OWNER_ID);
-            if (!botOwner) {
-                throw new Error("bot owner id is invalid");
-            }
-        }
-        else {
-            throw new Error("bot owner id is undefined");
-        }
-    });
+    bot.login(process.env.DISCORD_TOKEN).then(() => Debug.Log("Successfully logged in discord!"));
 }
 else {
     throw new Error("discord token is undefined");
@@ -218,15 +205,12 @@ bot.on("guildMemberRemove", member => {
 });
 
 bot.on("guildCreate", async guild => {
-    await botOwner?.send(`Присоединился к серверу '${guild.nameAcronym}'. *Стрёмно...*`);
+    Debug.Log(`joined guild '${guild.nameAcronym}' (id: ${guild.id})`);
 });
 
 bot.on("guildDelete", async guild => {
+    Debug.Log(`leaved guild '${guild.nameAcronym}' (id: ${guild.id})`);
     deleteGuildData(guild);
-    try {
-        await botOwner?.send(`меня убрали с сервера '${guild.nameAcronym}'. *Ну и ладно...*`);
-    }
-    catch {}
 });
 
 // #region error & close events
