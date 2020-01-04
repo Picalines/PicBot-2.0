@@ -65,7 +65,7 @@ bot.on("message", async msg => {
 
     const noPrefixContent = msg.content.slice(prefix.length);
     const cname = (noPrefixContent.split(" ")[0] || "").toLowerCase();
-    let command = findCommand(c => cname == c.info.name);
+    let command = findCommand(c => cname == c.info.name.toLowerCase());
 
     if (command != undefined) {
         if (!command.checkPermission(msg.member)) {
@@ -78,7 +78,7 @@ bot.on("message", async msg => {
     else {
         let errMsg = `Команда \`${cname}\` не найдена`;
 
-        const commandNames = commands.map(c => c.info.name);
+        const commandNames = commands.map(c => c.info.name.toLowerCase());
         const bestMatches = findBestMatch(cname, commandNames);
         const nearest = bestMatches.bestMatch.target;
         
@@ -95,7 +95,7 @@ bot.on("message", async msg => {
                 await rmsg.delete();
             }
             
-            command = findCommand(c => c.info.name == nearest);
+            command = findCommand(c => c.info.name.toLowerCase() == nearest);
 
             if (command == undefined) {
                 await msg.reply(generateErrorEmbed("произошла неизвестная ошибка"));
