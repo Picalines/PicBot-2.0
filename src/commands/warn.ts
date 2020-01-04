@@ -41,6 +41,7 @@ export class WarnCommand extends Command {
     }
 }
 
+
 export class UnwarnCommand extends Command {
     info: CommandInfo = {
         name: "unwarn",
@@ -54,10 +55,7 @@ export class UnwarnCommand extends Command {
         const memberMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание извинившегося участника сервера");
 
         const member = getMemberFromMention(msg.guild, memberMention);
-        if (member.user.bot) {
-            throw new MemberIsBotError(memberMention);
-        }
-        else if (member == msg.member) {
+        if (member == msg.member) {
             throw new Error("нельзя снять предупреждение с самого себя");
         }
 
@@ -79,6 +77,33 @@ export class UnwarnCommand extends Command {
         }
     }
 }
+
+
+export class ClearWarnsCommand extends Command {
+    info: CommandInfo = {
+        name: "clearWarns",
+        syntax: [["user", "mention"]],
+        description: "снимает все предупреждения с участника сервера `mention`",
+        permission: "admin",
+        group: "Администрирование"
+    };
+
+    async run(msg: Message, argEnumerator: ArgumentEnumerator) {
+        const memberMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание извинившегося участника сервера");
+
+        const member = getMemberFromMention(msg.guild, memberMention);
+        if (member == msg.member) {
+            throw new Error("нельзя снять предупреждение с самого себя");
+        }
+
+        const guildData = getGuildData(msg);
+        const acc = guildData.getAccount(member);
+
+        acc.removeProperty("warns");
+        await msg.reply(`${member.displayName} чист!`);
+    }
+}
+
 
 export class MaxWarnsCommand extends Command {
     info: CommandInfo = {
