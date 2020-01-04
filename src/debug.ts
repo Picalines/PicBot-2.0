@@ -3,34 +3,49 @@ import * as fs from "./fsAsync";
 export type LogType = "event" | "error" | "warning"
 
 export abstract class Debug {
-    private static datePattern = /\S{3} \d{2} \d{4} (\d{2}:?){3}/gm;
+    private static datePattern = /.+(\d+:){2}\d+/;
 
-    static readonly logsPath = "./logs.txt";
-
-    private static lastLogs = "";
+    private static lastLogs: string[] = [];
 
     private static getDate(): string {
-        const pat = /.+(\d+:){2}\d+/g;
-        let res = pat.exec(Date());
-        return res ? res.slice()[0] : ":/";
+        const res = this.datePattern.exec(Date());
+        return res !== null ? res.slice()[0] : ":/";
     }
 
     static Log(msg: any, type: LogType = "event") {
-        let date = `[${this.getDate()}]`;
+        const date = `[${this.getDate()}]`;
         let m = date + " - " + String(msg);
 
         switch (type) {
             default: throw new Error(`unsupported log type '${type}'`);
             case "event": break;
-            case "error": m = "[ERROR] " + m;
-            case "warning": m = "[WARNING] " + m;
+            case "error": m = "[ERROR] " + m; break;
+            case "warning": m = "[WARNING] " + m; break;
         }
 
         console.log(m);
-        this.lastLogs += m + "\n";
+
+        const lastCount = Number(process.env.LAST_LOGS_COUNT) || 3;
+        this.lastLogs.push(m);
+        if (this.lastLogs.length > lastCount) {
+            this.lastLogs.shift();
+        }
+
+        if (type == "error") {
+            this.Save().then(() => console.log("\nerror data saved\n"));
+        }
     }
 
     static async Save() {
-        await fs.appendFileAsync(this.logsPath, this.lastLogs + "\n");
+        if (this.lastLogs.length == 0) return;
+
+        const path = String(process.env.LOGS_PATH || "./logs.txt");
+        let text = `\n/* SAVED AT ${Date()} */\n\n`;
+        for (const log of this.lastLogs) {
+            text += log + "\n";
+        }
+
+        await fs.appendFileAsync(path, text);
+        this.lastLogs = [];
     }
 }

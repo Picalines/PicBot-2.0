@@ -216,9 +216,11 @@ bot.on("guildDelete", async guild => {
 // #region error & close events
 
 async function backup() {
-    await Debug.Save();
     await database.save();
+    await Debug.Save();
 }
+
+setInterval(backup, Number(process.env.BACKUP_DELAY_MIN) || 3600000);
 
 bot.on("error", async err => {
     Debug.Log("Disconnected from Discord. Trying to connect again (10s delay)...", "warning");
