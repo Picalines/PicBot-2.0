@@ -137,10 +137,11 @@ export async function loadCommands() {
     Debug.Log("commands successfully loaded");
 }
 
-export async function runCommand(msg: Discord.Message, content: string, command: Command) {
-    let input = content.slice(command.info.name.length);
-    let inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
+export async function runCommand(msg: Discord.Message, command: Command, realName?: string) {
     try {
+        const cname = realName === undefined ? command.info.name.toLowerCase() : realName.toLowerCase();
+        const input = msg.content.slice(msg.content.toLowerCase().search(cname) + cname.length);
+        const inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
         await command.run(msg, new Enumerator(inputTokens));
     }
     catch (err) {

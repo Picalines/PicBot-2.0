@@ -72,7 +72,7 @@ bot.on("message", async msg => {
             await msg.reply("ты не можешь использовать эту команду :/");
         }
         else {
-            await runCommand(msg, noPrefixContent, command);
+            await runCommand(msg, command);
         }
     }
     else {
@@ -101,7 +101,7 @@ bot.on("message", async msg => {
                 await msg.reply(generateErrorEmbed("произошла неизвестная ошибка"));
             }
             else {
-                await runCommand(msg, noPrefixContent.slice(cname.length), command);
+                await runCommand(msg, command, cname);
             }
         }
     }
