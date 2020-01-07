@@ -1,6 +1,5 @@
 import { Command, CommandInfo, ArgumentEnumerator, findCommand } from "../command";
 import { getMemberFromMention } from "../utils";
-import { MemberIsBotError } from "../error";
 import { getGuildData } from "../guildData";
 import { Message } from "discord.js";
 import { BanCommand } from "./ban";

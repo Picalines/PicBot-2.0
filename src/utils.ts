@@ -1,8 +1,8 @@
-import { commandTokenizer, ArgumentType } from "./command";
+import { MemberNotFoundError, MemberIsBotError, RoleNotFoundError } from "./error";
 import { GuildMember, Guild, RichEmbed, Role } from "discord.js";
+import { commandTokenizer, ArgumentType } from "./command";
 import { GuildData } from "./guildData";
 import { Token } from "./tokenizer";
-import { MemberNotFoundError, MemberIsBotError, RoleNotFoundError } from "./error";
 
 export function delay(ms: number) {
     return new Promise(res => setTimeout(res, ms));

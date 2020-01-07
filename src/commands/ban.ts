@@ -1,8 +1,8 @@
 import { Message, RichEmbed, GuildMember, TextChannel, DiscordAPIError } from "discord.js";
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { delay, getMemberFromMention, colors } from "../utils";
-import { getGuildData } from "../guildData";
 import { MemberNotFoundError } from "../error";
+import { getGuildData } from "../guildData";
 
 export class BanCommand extends Command {
     info: CommandInfo = {

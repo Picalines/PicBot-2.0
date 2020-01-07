@@ -1,6 +1,6 @@
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
-import { Message } from "discord.js";
 import { getMemberFromMention } from "../utils";
+import { Message } from "discord.js";
 
 export class KickCommand extends Command {
     info: CommandInfo = {

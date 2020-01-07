@@ -3,8 +3,8 @@ import { Account, IAccountData } from "./account";
 import { DataObject, Property } from "./property";
 import * as Discord from "discord.js";
 import { nameof } from "./utils";
-import { bot } from "./main";
 import { Debug } from "./debug";
+import { bot } from "./main";
 
 export class GuildData extends DataObject {
     readonly guild: Discord.Guild;
