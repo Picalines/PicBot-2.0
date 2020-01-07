@@ -1,9 +1,7 @@
 import { deserializeGuildData, guildsData } from "./guildData";
-import { PropertyType } from "./property";
-import * as fs from "./fsAsync";
 import { Debug } from "./debug";
+import * as fs from "./fsAsync";
 import { bot } from "./main";
-import { AssetNotFoundError } from "./error";
 
 export const databaseFolderPath = "./database/";
 export const guildsFolderPath = databaseFolderPath + "guilds/";
@@ -33,7 +31,7 @@ export async function loadGuilds() {
         let id = file.replace(".json", "");
         let guild = bot.guilds.find(g => g.id == id);
         if (guild != null) {
-            let data = JSON.parse((await fs.readFileAsync(guildsFolderPath + file)).toString());
+            let data = await fs.readJsonAsync(guildsFolderPath + file);
             guildsData[guild.id] = deserializeGuildData(data);
         }
     }
@@ -53,29 +51,3 @@ export async function saveGuilds() {
 }
 
 // #endregion
-
-export interface IAsset {
-    readonly [key: string]: PropertyType | IAsset;
-}
-
-var loadedAssets: { [name: string]: IAsset } = {};
-
-export async function getAsset<T extends IAsset = IAsset>(name: string): Promise<T> {
-    if (loadedAssets[name] != undefined) {
-        return loadedAssets[name] as T;
-    }
-
-    await fs.checkFolderAsync(databaseFolderPath);
-    await fs.checkFolderAsync(assetsFolderPath);
-
-    let path = assetsFolderPath + name + ".json";
-    if (!(await fs.existsAsync(path))) {
-        throw new AssetNotFoundError(`Asset '${name}' not found`);
-    }
-
-    let data = (await fs.readFileAsync(path)).toString();
-    let asset = JSON.parse(data) as T;
-    loadedAssets[name] = asset;
-
-    return asset;
-}

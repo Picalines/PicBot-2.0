@@ -1,14 +1,14 @@
 import { Command, CommandInfo, ArgumentEnumerator, SyntaxArgument } from "../command";
 import { getMemberFromMention, getRandomFromArray } from "../utils";
 import { Message, RichEmbed, GuildMember } from "discord.js";
-import { Debug } from "../debug";
 import { assetsFolderPath } from "../database";
+import { Debug } from "../debug";
 
 interface IGifCommandCase {
     message: string | (() => string);
     images?: string[];
     condition?: (b: GuildMember, a?: GuildMember) => boolean;
-    setEmbed?: (embed: RichEmbed) => RichEmbed | undefined;
+    setEmbed?: (embed: RichEmbed) => Promise<RichEmbed> | RichEmbed | undefined;
 }
 
 function generateGifCommand(className: string, name: string, description: string, syntax: SyntaxArgument[], cases: IGifCommandCase[]) {
@@ -57,7 +57,7 @@ function generateGifCommand(className: string, name: string, description: string
             let embed: RichEmbed | undefined = undefined;
 
             if (useCase.setEmbed) {
-                embed = useCase.setEmbed(new RichEmbed());
+                embed = await useCase.setEmbed(new RichEmbed());
             }
             else if (useCase.images && useCase.images.length > 0) {
                 let img = getRandomFromArray(useCase.images);
@@ -102,7 +102,7 @@ generateGifCommand("EatCommand", "eat", "ты ешь `member`", [["user", "membe
     {
         condition: (a, b) => a == b,
         message: "%author% ест сам себя... чо...",
-        setEmbed: (embed: RichEmbed) => Math.random() <= 0.3 ? embed.attachFile(assetsFolderPath + "eatYorself.png") : undefined
+        setEmbed: (embed: RichEmbed) => Math.random() <= 0.3 ? embed.attachFile(assetsFolderPath + "eatYorself.png").setDescription("?") : undefined
     },
     {
         message: "%author% ест %target%"

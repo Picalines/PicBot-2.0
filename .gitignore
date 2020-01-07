@@ -1,6 +1,8 @@
-dist/
 node_modules/
+.vscode/
+dist/
+
+database/
+
 .env
 logs.txt
-database/
-.vscode/

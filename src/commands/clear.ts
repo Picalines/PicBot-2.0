@@ -1,5 +1,6 @@
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
-import { Message } from "discord.js";
+import { Message, DiscordAPIError } from "discord.js";
+import { Debug } from "../debug";
 
 export class ClearCommand extends Command {
     info: CommandInfo = {
@@ -18,7 +19,14 @@ export class ClearCommand extends Command {
         if (messages.size > 0) {
             const m = (await msg.channel.send(`**${msg.member.displayName}** замял чьи-то сообщения (${messages.size - 1})`)) as Message;
             if (m.deletable) {
-                m.delete(5000);
+                try {
+                    m.delete(5000);
+                }
+                catch (err) {
+                    if (err instanceof DiscordAPIError) {
+                        Debug.Log("clear command msg.delete -> discord api error");
+                    }
+                }
             }
         }
         else {

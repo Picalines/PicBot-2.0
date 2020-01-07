@@ -1,7 +1,8 @@
-import { Command, CommandInfo, ArgumentEnumerator, commands, findCommand } from "../command";
+import { Command, CommandInfo, ArgumentEnumerator, ArgumentType, commands, findCommand } from "../command";
 import { Message, RichEmbed, GuildMember } from "discord.js";
-import { IAsset, getAsset } from "../database";
+import { assetsFolderPath } from "../database";
 import { colors } from "../utils";
+import * as fs from "../fsAsync";
 
 interface CommandList {
     group: string;
@@ -18,8 +19,8 @@ function compareCommandList(a: CommandList, b: CommandList): number {
     return b.group.length - a.group.length;
 }
 
-interface IArgumentTypeAsset extends IAsset {
-    descriptions: { [name: string]: string };
+type ArgTypeDescriptions = {
+    [key in keyof ArgumentType]: string;
 }
 
 export class HelpCommand extends Command {
@@ -78,15 +79,17 @@ export class HelpCommand extends Command {
     }
 
     private async generateTypesHelp(): Promise<RichEmbed> {
-        let typeDesc = (await getAsset<IArgumentTypeAsset>("argumentType")).descriptions;
+        let typeDesc = await fs.readJsonAsync<ArgTypeDescriptions>(assetsFolderPath + "helpArgType.json");
 
-        let embed = new RichEmbed();
+        const embed = new RichEmbed();
         embed.setTitle("Типы аргументов");
         embed.setColor(colors.GREEN);
 
         let s = "";
         for (let t in typeDesc) {
-            s += `\`${t}\` - ${typeDesc[t]}\n`;
+            if (t != undefined) {
+                s += `\`${t}\` - ${typeDesc[t]}\n`;
+            }
         }
 
         return embed.setDescription(s);

@@ -47,13 +47,6 @@ export class MemberIsBotError extends Error {
     }
 }
 
-export class AssetNotFoundError extends NotFoundError {
-    constructor(path: string) {
-        super('ассет', path);
-        this.name = "AssetNotFound";
-    }
-}
-
 export class DeserializationError extends Error {
     constructor(message: string) {
         super(message);
