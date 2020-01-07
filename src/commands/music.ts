@@ -19,9 +19,9 @@ interface IQueueItem {
 }
 
 interface IQueue {
-    readonly nextItems: IQueueItem[];
-    current: IQueueItem;
-    saverInterval: NodeJS.Timeout;
+    nextItems: IQueueItem[];
+    current?: IQueueItem;
+    saverInterval?: NodeJS.Timeout;
 }
 
 const videoUrlStart = "https://www.youtube.com/watch?v=";
@@ -42,11 +42,11 @@ export class PlayCommand extends Command {
         group: "Музыка"
     };
 
-    private queues: { [serverId: string]: IQueueItem[] } = {};
-    private playing: { [serverId: string]: IQueueItem } = {};
-    private timeOuts: { [serverId: string]: NodeJS.Timeout } = {};
+    private queues: { [serverId: string]: IQueue } = {};
+
     private invalidLinkMsg = "ожидалась youtube ссылка на трек";
 
+    // discord bugs
     private connectedTo(channel: VoiceChannel, me?: GuildMember): boolean {
         if (!me) me = channel.guild.me;
         let members = channel.members.array();
@@ -59,21 +59,21 @@ export class PlayCommand extends Command {
     }
 
     private clearQueue(serverId: string) {
-
+        let saverInterval = this.queues[serverId]?.saverInterval;
+        if (saverInterval) {
+            clearInterval(saverInterval);
+        }
+        delete this.queues[serverId];
     }
 
     private checkChannel(channel: VoiceChannel) {
         if (!this.connectedTo(channel)) {
-            delete this.queues[channel.guild.id];
-            delete this.playing[channel.guild.id];
+            this.clearQueue(channel.guild.id);
             channel.connection?.disconnect();
-            clearInterval(this.timeOuts[channel.guild.id]);
         }
         else if (channel.members.size == 1) {
-            delete this.queues[channel.guild.id];
-            delete this.playing[channel.guild.id];
+            this.clearQueue(channel.guild.id);
             channel.leave();
-            clearInterval(this.timeOuts[channel.guild.id]);
         }
     }
 
@@ -93,7 +93,9 @@ export class PlayCommand extends Command {
         }
 
         if (this.queues[serverId] == undefined) {
-            this.queues[serverId] = [];
+            this.queues[serverId] = {
+                nextItems: []
+            };
         }
 
         let arg = this.readText(argEnumerator);
@@ -116,7 +118,7 @@ export class PlayCommand extends Command {
                 throw new Error("Я не могу (*или не хочу*) играть этот трек");
             }
 
-            this.queues[serverId].push({
+            this.queues[serverId].nextItems.push({
                 msg: msg,
                 info: {
                     id: getVideoID(arg),
@@ -174,7 +176,7 @@ export class PlayCommand extends Command {
 
             const choice = infos[choiceIndex];
 
-            this.queues[serverId].push({
+            this.queues[serverId].nextItems.push({
                 msg: msg,
                 info: choice
             });
@@ -185,7 +187,7 @@ export class PlayCommand extends Command {
         if (!this.connectedTo(msg.member.voiceChannel)) {
             let connection = await msg.member.voiceChannel.join();
 
-            this.timeOuts[msg.member.guild.id] = setInterval(() => {
+            this.queues[msg.member.guild.id].saverInterval = setInterval(() => {
                 this.checkChannel(connection?.channel);
             }, 10000);
 
@@ -200,13 +202,13 @@ export class PlayCommand extends Command {
 
         const serverId = channel.guild.id;
 
-        let queue = this.queues[serverId];
+        let queue = this.queues[serverId].nextItems;
 
         const loopCommand = findCommand(c => c instanceof LoopCommand) as LoopCommand | undefined;
         if (queue.length == 0 && loopCommand != undefined) {
             if (loopCommand.isLoop(serverId)) {
-                this.queues[serverId] = loopCommand.getCopy(serverId);
-                queue = this.queues[serverId];
+                this.queues[serverId].nextItems = loopCommand.getCopy(serverId);
+                queue = this.queues[serverId].nextItems;
             }
         }
 
@@ -218,16 +220,15 @@ export class PlayCommand extends Command {
         }
 
         if (!queue || !current) {
-            channel.leave();
-            delete this.queues[serverId];
-            delete this.playing[serverId];
+            this.clearQueue(serverId);
             loopCommand?.clearLoop(serverId);
+            channel.leave();
             return;
         }
 
         const link = videoUrlStart + current.info.id;
 
-        this.playing[serverId] = current;
+        this.queues[serverId].current = current;
 
         let playable: Readable;
         try {
@@ -258,18 +259,11 @@ export class PlayCommand extends Command {
         });
     }
 
-    getQueue(guild: Guild | Message): IQueueItem[] | undefined {
+    getQueue(guild: Guild | Message): IQueue | undefined {
         if (guild instanceof Message) {
             guild = guild.guild;
         }
         return this.queues[guild.id];
-    }
-
-    getCurrent(guild: Guild | Message): IQueueItem | undefined {
-        if (guild instanceof Message) {
-            guild = guild.guild;
-        }
-        return this.playing[guild.id];
     }
 }
 
@@ -305,7 +299,7 @@ export class CurrentQueueCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         const playCommand = checkAvailable(msg);
 
-        const queue = playCommand.getQueue(msg);
+        const queue = playCommand.getQueue(msg)?.nextItems;
         if (!queue || queue.length == 0) {
             await msg.reply("очередь треков пуста");
             return;
@@ -349,7 +343,7 @@ export class SkipCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         const playCommand = checkAvailable(msg);
 
-        let current = playCommand.getCurrent(msg);
+        let current = playCommand.getQueue(msg)?.current;
         if (!current) {
             throw new Error("Бот не играет музыку");
         }
@@ -379,11 +373,11 @@ export class StopCommand extends Command {
         let voiceChannel = msg.member.voiceChannel;
 
         async function stop() {
-            voiceChannel.connection.dispatcher.end("stopCommand");
-            await msg.reply("музыка (*надеюсь*) успешно остановлена");
-
             const loopCommand = findCommand(c => c instanceof LoopCommand) as LoopCommand | undefined;
             loopCommand?.clearLoop(msg.guild.id);
+
+            voiceChannel.connection.dispatcher.end("stopCommand");
+            await msg.reply("музыка (*надеюсь*) успешно остановлена");
         }
 
         if (msg.member.permissions.has('ADMINISTRATOR') || voiceChannel.members.size == 2) {
@@ -413,7 +407,7 @@ export class LoopCommand extends Command {
         group: "Музыка"
     };
 
-    private queueCopies: { [id: string]: IQueueItem[] | undefined } = {};
+    private queueCopies: { [id: string]: IQueueItem[] } = {};
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         const playCommand = checkAvailable(msg);
@@ -421,23 +415,21 @@ export class LoopCommand extends Command {
         const serverId = msg.guild.id;
 
         if (this.isLoop(serverId)) {
-            this.queueCopies[serverId] = undefined;
+            delete this.queueCopies[serverId];
             await msg.reply("повторение треков прекращено");
         }
         else {
-            const current = playCommand.getCurrent(msg);
-            if (!current) {
+            const queue = playCommand.getQueue(msg);
+
+            if (!queue || !queue.current) {
                 throw new Error("бот не играет музыку");
             }
             
-            this.queueCopies[serverId] = [{...current}];
+            this.queueCopies[serverId] = [{...queue.current}];
 
-            const queue = playCommand.getQueue(msg);
             if (queue) {
-                this.queueCopies[serverId]?.push(...queue.map(v => ({...v})));
+                this.queueCopies[serverId]?.push(...queue.nextItems.map(v => ({...v})));
             }
-
-            console.log(this.queueCopies[serverId]);
 
             await msg.reply(`я буду повторять очередь треков, пока кто-то снова не пропишет команду \`${this.info.name}\``);
         }
@@ -448,10 +440,10 @@ export class LoopCommand extends Command {
     }
 
     getCopy(serverId: string): IQueueItem[] {
-        return this.queueCopies[serverId] as IQueueItem[];
+        return this.queueCopies[serverId];
     }
 
     clearLoop(serverId: string) {
-        this.queueCopies[serverId] = undefined;
+        delete this.queueCopies[serverId];
     }
 }
