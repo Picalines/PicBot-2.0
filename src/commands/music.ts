@@ -48,14 +48,8 @@ export class PlayCommand extends Command {
 
     // discord bugs
     private connectedTo(channel: VoiceChannel, me?: GuildMember): boolean {
-        if (!me) me = channel.guild.me;
-        let members = channel.members.array();
-        for (let i in members) {
-            if (members[i].id == me.id) {
-                return true;
-            }
-        }
-        return false;
+        const me1 = me ?? channel.guild.me;
+        return channel.members.find(m => m.id == me1.id) != undefined;
     }
 
     private clearQueue(serverId: string) {
@@ -204,11 +198,13 @@ export class PlayCommand extends Command {
 
         let queue = this.queues[serverId].nextItems;
 
+        let looped = false;
         const loopCommand = findCommand(c => c instanceof LoopCommand) as LoopCommand | undefined;
         if (queue.length == 0 && loopCommand != undefined) {
             if (loopCommand.isLoop(serverId)) {
                 this.queues[serverId].nextItems = loopCommand.getCopy(serverId);
                 queue = this.queues[serverId].nextItems;
+                looped = true;
             }
         }
 
@@ -226,9 +222,12 @@ export class PlayCommand extends Command {
             return;
         }
 
-        const link = videoUrlStart + current.info.id;
-
+        if (looped && queue.length > 0) {
+            await current.msg.channel.send("очередь треков восстала из мёртвых!");
+        }
+        
         this.queues[serverId].current = current;
+        const link = videoUrlStart + current.info.id;
 
         let playable: Readable;
         try {
@@ -244,7 +243,7 @@ export class PlayCommand extends Command {
         embed.setColor(colors.RED);
         embed.setTitle("**Играет следующий трек из очереди!**");
         embed.setFooter(`Предложил(а) ${current.msg.member.displayName}`, current.msg.author.avatarURL);
-        embed.addField("Автор - название", current.info.author + " - " + current.info.title);
+        embed.addField("Автор - название", current.info.author + " -> " + current.info.title);
         embed.addField("Продолжительность", current.info.duration);
         embed.addField("Ссылка", link);
 
@@ -293,7 +292,7 @@ export class CurrentQueueCommand extends Command {
     };
 
     private formatQueueItem(item: IQueueItem): string {
-        return item.info.title + ` -> ${item.info.duration}`
+        return `${item.info.author} -> ${item.info.title} (${item.info.duration})`
     }
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
@@ -307,7 +306,7 @@ export class CurrentQueueCommand extends Command {
 
         const qEmbed = new RichEmbed();
         qEmbed.setColor(colors.AQUA);
-        qEmbed.setTitle("**Очередь треков**");
+        qEmbed.setTitle("**Дальше будут играть**");
 
         let allFormat = "";
         for (let i in queue) {
