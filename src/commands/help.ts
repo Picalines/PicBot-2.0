@@ -35,14 +35,14 @@ export class HelpCommand extends Command {
     private readonly argTypeArg = "argType";
 
     private generateList(member: GuildMember): RichEmbed {
-        let grouped: { [group: string]: CommandList } = {};
+        const grouped: { [group: string]: CommandList } = {};
 
-        for (let i in commands) {
-            if (!commands[i].checkPermission(member)) {
+        for (const c of commands) {
+            if (!c.checkPermission(member)) {
                 continue;
             }
 
-            let info = commands[i].info;
+            let info = c.info;
             const g = info.group || "Другое";
             if (grouped[g] == undefined) {
                 grouped[g] = { group: g, list: [] };
@@ -51,79 +51,78 @@ export class HelpCommand extends Command {
             grouped[g].list.push(info);
         }
 
-        let groupedArr: CommandList[] = [];
+        const groupedArr: CommandList[] = [];
         for (let g in grouped) {
             grouped[g].list.sort(compareCommands)
             groupedArr.push(grouped[g]);
         }
         groupedArr.sort(compareCommandList);
 
-        let embed = new RichEmbed();
+        const embed = new RichEmbed();
         embed.setTitle("Список доступных команд");
         embed.setColor(colors.AQUA);
 
-        for (let g in groupedArr) {
+        for (const gArr of groupedArr) {
             let s = "";
-            for (let i in groupedArr[g].list) {
-                let info = groupedArr[g].list[i];
+            for (const info of gArr.list) {
                 s += `\`${info.name}\` `;
+
                 if (info.syntax != undefined) {
                     s += Command.syntaxToString(info.syntax);
                 }
+
                 s += " - " + info.description + "\n";
             }
-            embed.addField(groupedArr[g].group, s);
+            embed.addField(gArr.group, s);
         }
 
         return embed;
     }
 
     private async generateTypesHelp(): Promise<RichEmbed> {
-        let typeDesc = await fs.readJsonAsync<ArgTypeDescriptions>(assetsFolderPath + "helpArgType.json");
+        const typeDesc = await fs.readJsonAsync<ArgTypeDescriptions>(assetsFolderPath + "helpArgType.json");
 
         const embed = new RichEmbed();
         embed.setTitle("Типы аргументов");
         embed.setColor(colors.GREEN);
 
         let s = "";
-        for (let t in typeDesc) {
-            if (t != undefined) {
-                s += `\`${t}\` - ${typeDesc[t]}\n`;
-            }
+        for (const t in typeDesc) {
+            s += `\`${t}\` - ${typeDesc[t]}\n`;
         }
 
         return embed.setDescription(s);
     }
 
     private generateCommandHelp(info: CommandInfo): RichEmbed {
-        let embed = new RichEmbed();
-        embed.setTitle(`Информация о команде \`${info.name}\``);
-        embed.setColor(colors.GREEN);
-        embed.addField("Описание", info.description);
-        embed.addField("Аргументы", info.syntax != undefined ? Command.syntaxToString(info.syntax) : "*нету*");
-        embed.addField("Группа", info.group || "Другое");
-        return embed;
+        return new RichEmbed()
+            .setTitle(`Информация о команде \`${info.name}\``)
+            .setColor(colors.GREEN)
+            .addField("Описание", info.description)
+            .addField("Аргументы", info.syntax != undefined ? Command.syntaxToString(info.syntax) : "*нету*")
+            .addField("Группа", info.group || "Другое")
     }
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        const name = this.readNextToken(argEnumerator, "word", "Ожидалось имя команды", "__all_list");
-        if (name == "__all_list") {
+        const name = this.readNextToken(argEnumerator, "word", "Ожидалось имя команды", "_all_");
+        if (name == "_all_") {
             await msg.channel.send(`${msg.member}, для помощи по типам аргументов юзай \`help ${this.argTypeArg}\``, this.generateList(msg.member));
         }
         else if (name == this.argTypeArg) {
             if (this.typesHelp == undefined) {
                 this.typesHelp = await this.generateTypesHelp();
             }
+            
             await msg.reply(this.typesHelp);
         }
         else {
-            let c = findCommand(cc => cc.info.name == name);
-            if (c != undefined) {
-                await msg.reply(this.generateCommandHelp(c.info));
-            }
-            else {
+            const c = findCommand(cc => cc.info.name == name);
+
+            if (c == undefined) {
                 throw new Error(`Информация о команде '${name}' не найдена`);
             }
+
+            await msg.reply(this.generateCommandHelp(c.info));
         }
     }
 }

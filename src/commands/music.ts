@@ -308,10 +308,7 @@ export class CurrentQueueCommand extends Command {
         qEmbed.setColor(colors.AQUA);
         qEmbed.setTitle("**Дальше будут играть**");
 
-        let allFormat = "";
-        for (let i in queue) {
-            allFormat += this.formatQueueItem(queue[i]) + "\n";
-        }
+        const allFormat = queue.reduce((acc, item) => acc + this.formatQueueItem(item) + "\n", "");
 
         try {
             qEmbed.setDescription(allFormat);
@@ -321,9 +318,7 @@ export class CurrentQueueCommand extends Command {
                 await msg.reply(`очередь треков:\n${allFormat}`);
                 return;
             }
-            else {
-                throw new Error(err.message);
-            }
+            throw err;
         }
 
         await msg.reply(qEmbed);

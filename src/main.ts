@@ -53,18 +53,18 @@ bot.on("message", async msg => {
         await msg.channel.send("Из-за странной ошибки был утерян список префиксов для команд. Теперь мой единственный префикс это `~`");
     }
 
-    let prefix: string | undefined = undefined;
-    for (const p of guildData.prefixes) {
-        if (msg.content.toLowerCase().startsWith(p.toLowerCase())) {
-            prefix = p;
-            break
-        }
-    }
+    const prefix: string | undefined = guildData.prefixes.find(p => msg.content.toLowerCase().startsWith(p.toLowerCase()));
 
     if (prefix == undefined) return;
 
     const noPrefixContent = msg.content.slice(prefix.length);
     const cname = (noPrefixContent.split(" ")[0] || "").toLowerCase();
+    
+    if (cname == "" || cname.replace(/\s/gm, "") == "") {
+        await msg.reply(generateErrorEmbed("странное имя команды..."));
+        return;
+    }
+
     let command = findCommand(c => cname == c.info.name.toLowerCase());
 
     if (command != undefined) {
@@ -89,7 +89,7 @@ bot.on("message", async msg => {
 
         const filter = (r: any, u: any) => r.emoji.name == emojis.repair && u == msg.author;
 
-        let collected = await rmsg.awaitReactions(filter, { time: 10000, max: 1 });
+        const collected = await rmsg.awaitReactions(filter, { time: 10000, max: 1 });
         if (collected.size > 0) {
             if (rmsg.deletable) {
                 await rmsg.delete();

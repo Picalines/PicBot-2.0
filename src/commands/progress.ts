@@ -96,9 +96,7 @@ export async function handleProgression(member: GuildMember, channel?: TextChann
 
     let desc = "";
 
-    for (let i in progression[lvl]) {
-        const action = progression[lvl][i];
-
+    for (const action of progression[lvl]) {
         const role = member.guild.roles.find(r => r.id == action[1]);
         if (!role) {
             await channel.send(generateErrorEmbed(`не могу найти роль ${action[1]}. Орите на владельца сервера!`));
@@ -110,10 +108,10 @@ export async function handleProgression(member: GuildMember, channel?: TextChann
         desc += `${action[0] == "add" ? "получена": "потеряна"} роль ${role.name}\n`;
     }
 
-    const progressEmbed = new RichEmbed();
-    progressEmbed.setTitle(`${member.displayName} прогрессирует!`);
-    progressEmbed.setThumbnail(member.user.avatarURL);
-    progressEmbed.setColor(colors.BLUE);
+    const progressEmbed = new RichEmbed()
+        .setTitle(`${member.displayName} прогрессирует!`)
+        .setThumbnail(member.user.avatarURL)
+        .setColor(colors.BLUE);
 
     let err: RangeError | undefined = undefined;
     try {

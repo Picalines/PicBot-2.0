@@ -36,17 +36,13 @@ export class DataObject implements ISerializeable {
     readonly properties: Property[];
 
     constructor(props?: IProperty[]) {
-        this.properties = [];
-        if (props != undefined) {
-            props.forEach(p => this.properties.push(deserializeProperty(p)))
-        }
+        this.properties = props != undefined ? props.map(p => deserializeProperty(p)) : [];
     }
 
     getProperty<T extends PropertyType>(name: string, defaultValue: T): Property<T>
     getProperty<T extends PropertyType>(name: string, defaultValue?: T): Property<T> | undefined;
     getProperty<T extends PropertyType>(name: string, defaultValue: any): any {
-        for (let i in this.properties) {
-            let p = this.properties[i];
+        for (const p of this.properties) {
             if (p.name == name && p) {
                 return p as Property<T>;
             }
@@ -59,8 +55,7 @@ export class DataObject implements ISerializeable {
     }
 
     setProperty<T extends PropertyType>(name: string, value: T): Property<T> {
-        for (let i in this.properties) {
-            let p = this.properties[i];
+        for (const p of this.properties) {
             if (p.name == name) {
                 p.value = value;
                 return p as Property<T>;
@@ -78,19 +73,11 @@ export class DataObject implements ISerializeable {
     }
 
     hasProperty(name: string): boolean {
-        for (let i in this.properties) {
-            if (this.properties[i].name == name) return true;
-        }
-        return false;
+        return this.properties.find(p => p.name == name) != undefined;
     }
 
     serialize(): {} {
-        let props: IProperty[] = []
-        this.properties.forEach(p =>{
-            if (p.name != "undefined" && p.value != null) {
-                props.push(p.serialize())
-            }
-        });
-        return props;
+        const propFilter = (p: Property) => p.name != String(undefined) && p.value != null;
+        return this.properties.filter(propFilter).map(p => p.serialize()) as IProperty[];
     }
 }

@@ -3,6 +3,7 @@ node_modules/
 dist/
 
 database/
+database\ copy/
 
 .env
 logs.txt

@@ -108,12 +108,7 @@ export const commandTokenizer = new Tokenizer<ArgumentType>({
 export const commands: Command[] = [];
 
 export function findCommand(predicator: (c: Command) => boolean): Command | undefined {
-    for (let i in commands) {
-        let c = commands[i];
-        if (predicator(c)) {
-            return c;
-        }
-    }
+    return commands.find(predicator);
 }
 
 export const commandsFolderPath = `${__dirname}/commands/`;
@@ -124,8 +119,7 @@ export async function loadCommands() {
         commands.pop();
     }
 
-    let files = (await readdirAsync(commandsFolderPath)).filter(f => f.endsWith(".js"));
-    files.forEach(f => {
+    (await readdirAsync(commandsFolderPath)).filter(f => f.endsWith(".js")).forEach(f => {
         Debug.Log(`loading '${f}'...`);
         let cmodule = require(commandsFolderPath + f);
         for (let k in cmodule) {

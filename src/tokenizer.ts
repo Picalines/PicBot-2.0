@@ -31,7 +31,7 @@ export class Tokenizer<T extends string = string> {
 
     constructor(tokenDefs: { [type in T]: RegExp }) {
         this.tokenDefs = [];
-        for (let defType in tokenDefs) {
+        for (const defType in tokenDefs) {
             this.tokenDefs.push(new TokenDefinition(defType, tokenDefs[defType]));
         }
     }
@@ -39,8 +39,8 @@ export class Tokenizer<T extends string = string> {
     tokenize(value: string): Token<T>[] {
         let tokens: Token<T>[] = [];
 
-        for (var i = 0; i < value.length; i++) {
-            var result = this.read_token(value, i);
+        for (let i = 0; i < value.length; i++) {
+            const result = this.read_token(value, i);
             if (result != null) {
                 tokens.push(result);
                 i += result.value.length - 1;
@@ -55,11 +55,9 @@ export class Tokenizer<T extends string = string> {
     }
 
     private read_token(value: string, pos: number): Token<T> | null {
-        for (let i in this.tokenDefs) {
-            let def = this.tokenDefs[i];
-            
-            let sliced = value.slice(pos);
-            let result = sliced.match(def.regex);
+        for (const def of this.tokenDefs) {
+            const sliced = value.slice(pos);
+            const result = sliced.match(def.regex);
             if (result != null && sliced.startsWith(result[0])) {
                 return new Token(def.type, result[0], pos);
             }

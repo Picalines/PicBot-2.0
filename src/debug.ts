@@ -39,13 +39,9 @@ export abstract class Debug {
     static async Save() {
         if (this.lastLogs.length == 0) return;
 
-        const path = String(process.env.LOGS_PATH || "./logs.txt");
-        let text = `\n/* SAVED AT ${Date()} */\n\n`;
-        for (const log of this.lastLogs) {
-            text += log + "\n";
-        }
-
-        await fs.appendFileAsync(path, text);
+        const text = this.lastLogs.reduce((acc, log) => acc + log + "\n", `\n/* SAVED AT ${Date()} */\n\n`);
+        await fs.appendFileAsync(String(process.env.LOGS_PATH || "./logs.txt"), text);
+        
         this.lastLogs = [];
     }
 }

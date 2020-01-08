@@ -20,10 +20,7 @@ export class GuildData extends DataObject {
     }
 
     hasPrefix(pref: string): boolean {
-        for (let i in this.prefixes) {
-            if (this.prefixes[i] == pref) return true;
-        }
-        return false;
+        return this.prefixes.find(p => p == pref) != undefined;
     }
 
     private checkMemberGuild(member: Discord.GuildMember, f: string): Discord.GuildMember {
@@ -70,8 +67,8 @@ export class GuildData extends DataObject {
 
     serializeAccounts(): IAccountData[] {
         let accs: IAccountData[] = [];
-        for (let i in this.accounts) {
-            accs.push(this.accounts[i].serialize());
+        for (const id in this.accounts) {
+            accs.push(this.accounts[id].serialize());
         }
         return accs;
     }
@@ -110,13 +107,13 @@ export function deleteGuildData(guild: Discord.Guild): boolean {
 
 export function deserializeGuildData(data: any): GuildData {
     if (data?.id) {
-        let guild = bot.guilds.find(g => g.id == data.id);
+        const guild = bot.guilds.find(g => g.id == data.id);
         if (guild != null) {
             let guildData = new GuildData(guild, data.properties);
 
             if (data.accounts) {
-                for (let j in data.accounts) {
-                    let acc: IAccountData = data.accounts[j];
+                for (const j in data.accounts) {
+                    const acc: IAccountData = data.accounts[j];
                     if (!guildData.setAccount(acc)) {
                         Debug.Log(`account data #${j} (${acc.id}) ignored`, "warning");
                     }
