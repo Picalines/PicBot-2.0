@@ -1,6 +1,6 @@
 import { Enumerator, generateErrorEmbed } from "./utils";
 import { Token, Tokenizer } from "./tokenizer";
-import { readdirAsync } from "./fsAsync";
+import { readdir } from "./fsAsync";
 import { SyntaxError } from "./error";
 import * as Discord from "discord.js";
 import { Debug } from "./debug";
@@ -119,7 +119,7 @@ export async function loadCommands() {
         commands.pop();
     }
 
-    (await readdirAsync(commandsFolderPath)).filter(f => f.endsWith(".js")).forEach(f => {
+    (await readdir(commandsFolderPath)).filter(f => f.endsWith(".js")).forEach(f => {
         Debug.Log(`loading '${f}'...`);
         let cmodule = require(commandsFolderPath + f);
         for (let k in cmodule) {

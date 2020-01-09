@@ -80,7 +80,7 @@ export class HelpCommand extends Command {
     }
 
     private async generateTypesHelp(): Promise<RichEmbed> {
-        const typeDesc = await fs.readJsonAsync<ArgTypeDescriptions>(assetsFolderPath + "helpArgType.json");
+        const typeDesc = await fs.readJson<ArgTypeDescriptions>(assetsFolderPath + "helpArgType.json");
 
         const embed = new RichEmbed();
         embed.setTitle("Типы аргументов");

@@ -1,22 +1,22 @@
 import { promisify } from "util";
 import * as fs from "fs";
 
-export const appendFileAsync = promisify(fs.appendFile);
-export const writeFileAsync = promisify(fs.writeFile);
-export const readFileAsync = promisify(fs.readFile);
-export const readdirAsync = promisify(fs.readdir);
-export const existsAsync = promisify(fs.exists);
-export const mkdirAsync = promisify(fs.mkdir);
-export const lstatAsync = promisify(fs.lstat);
+export const appendFile = fs.promises.appendFile;
+export const writeFile = fs.promises.writeFile;
+export const readFile = fs.promises.readFile;
+export const readdir = fs.promises.readdir;
+export const exists = promisify(fs.exists);
+export const mkdir = fs.promises.mkdir;
+export const lstat = fs.promises.lstat;
 
-export const isDirectory = async (path: string) => (await lstatAsync(path)).isDirectory();
+export const isDirectory = async (path: string) => (await lstat(path)).isDirectory();
 
-export async function readJsonAsync<T = any>(path: string): Promise<T> {
-    return JSON.parse((await readFileAsync(path)).toString()) as T;
+export async function readJson<T = any>(path: string): Promise<T> {
+    return JSON.parse((await readFile(path)).toString()) as T;
 }
 
-export async function checkFolderAsync(path: string) {
-    if (!(await existsAsync(path))) {
-        await mkdirAsync(path);
+export async function checkFolder(path: string) {
+    if (!(await exists(path))) {
+        await mkdir(path);
     }
 }
