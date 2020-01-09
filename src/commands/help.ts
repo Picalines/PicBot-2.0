@@ -58,9 +58,9 @@ export class HelpCommand extends Command {
         }
         groupedArr.sort(compareCommandList);
 
-        const embed = new RichEmbed();
-        embed.setTitle("Список доступных команд");
-        embed.setColor(colors.AQUA);
+        const embed = new RichEmbed()
+            .setTitle("Список доступных команд")
+            .setColor(colors.AQUA);
 
         for (const gArr of groupedArr) {
             let s = "";
@@ -82,9 +82,9 @@ export class HelpCommand extends Command {
     private async generateTypesHelp(): Promise<RichEmbed> {
         const typeDesc = await fs.readJson<ArgTypeDescriptions>(assetsFolderPath + "helpArgType.json");
 
-        const embed = new RichEmbed();
-        embed.setTitle("Типы аргументов");
-        embed.setColor(colors.GREEN);
+        const embed = new RichEmbed()
+            .setTitle("Типы аргументов")
+            .setColor(colors.GREEN);
 
         let s = "";
         for (const t in typeDesc) {

@@ -149,9 +149,10 @@ export class PlayCommand extends Command {
                 throw new Error("ничего не найдено");
             }
 
-            const searchEmbed = new RichEmbed();
-            searchEmbed.setColor(colors.AQUA);
-            searchEmbed.setTitle(`Выберете 1 из ${infos.length} результатов поиска`);
+            const searchEmbed = new RichEmbed()
+                .setColor(colors.AQUA)
+                .setTitle(`Выберете 1 из ${infos.length} результатов поиска`);
+            
             infos.forEach((i, index) => searchEmbed
                 .addField(`[${index + 1}] ${i.title}`, `Автор: ${i.author}\nПродолжительность: ${i.duration}`));
 
@@ -239,13 +240,13 @@ export class PlayCommand extends Command {
             return;
         }
 
-        const embed = new RichEmbed();
-        embed.setColor(colors.RED);
-        embed.setTitle("**Играет следующий трек из очереди!**");
-        embed.setFooter(`Предложил(а) ${current.msg.member.displayName}`, current.msg.author.avatarURL);
-        embed.addField("Автор - название", current.info.author + " -> " + current.info.title);
-        embed.addField("Продолжительность", current.info.duration);
-        embed.addField("Ссылка", link);
+        const embed = new RichEmbed()
+            .setColor(colors.RED)
+            .setTitle("**Играет следующий трек из очереди!**")
+            .setFooter(`Предложил(а) ${current.msg.member.displayName}`, current.msg.author.avatarURL)
+            .addField("Автор - название", current.info.author + " -> " + current.info.title)
+            .addField("Продолжительность", current.info.duration)
+            .addField("Ссылка", link);
 
         await current.msg.channel.send(embed);
 
@@ -304,9 +305,9 @@ export class CurrentQueueCommand extends Command {
             return;
         }
 
-        const qEmbed = new RichEmbed();
-        qEmbed.setColor(colors.AQUA);
-        qEmbed.setTitle("**Дальше будут играть**");
+        const qEmbed = new RichEmbed()
+            .setColor(colors.AQUA)
+            .setTitle("**Дальше будут играть**");
 
         const allFormat = queue.reduce((acc, item) => acc + this.formatQueueItem(item) + "\n", "");
 

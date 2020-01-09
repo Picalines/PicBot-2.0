@@ -43,13 +43,13 @@ export class BanCommand extends Command {
             reason = "Не указана :/";
         }
 
-        let banEmbed = new RichEmbed();
-        banEmbed.setTitle("Информация о бане");
-        banEmbed.setThumbnail(member.user.avatarURL);
-        banEmbed.setFooter(`Злобный админ: ${admin.displayName}`, admin.user.avatarURL);
-        banEmbed.setColor(colors.RED);
-        banEmbed.addField("Жертва", member.toString());
-        banEmbed.addField("Причина", reason);
+        const banEmbed = new RichEmbed()
+            .setTitle("Информация о бане")
+            .setThumbnail(member.user.avatarURL)
+            .setFooter(`Злобный админ: ${admin.displayName}`, admin.user.avatarURL)
+            .setColor(colors.RED)
+            .addField("Жертва", member.toString())
+            .addField("Причина", reason);
 
         await channel.send(banEmbed);
 

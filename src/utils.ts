@@ -111,9 +111,9 @@ export function getRoleFromMention(guild: Guild | GuildData, mention: string | T
 }
 
 export function generateErrorEmbed(message: Error | string, includeSmile?: boolean): RichEmbed | string {
-    const errorEmbed = new RichEmbed();
-    errorEmbed.setTitle(`**Произошла ошибка**`);
-    errorEmbed.setColor(colors.RED);
+    const errorEmbed = new RichEmbed()
+        .setTitle(`**Произошла ошибка**`)
+        .setColor(colors.RED);
 
     if (message instanceof Error && message.message == "Cannot send an empty message") {
         message = "Я не могу отослать пустое сообщение";

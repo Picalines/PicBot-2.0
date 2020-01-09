@@ -24,19 +24,16 @@ export class StatsCommand extends Command {
         let xp = acc.getProperty("xp", 0).value;
         let warns = acc.getProperty("warns");
     
-        let embed = new RichEmbed();
-        embed.setTitle(`**Статистика ${member.displayName}**`);
-        embed.setThumbnail(member.user.avatarURL);
-        embed.setColor(member.displayColor);
+        const embed = new RichEmbed()
+            .setTitle(`**Статистика ${member.displayName}**`)
+            .setThumbnail(member.user.avatarURL)
+            .setColor(member.displayColor);
 
         if (warns != undefined) {
             embed.addField("*Опасность*", `Предупреждения: ${warns.value}`);
         }
 
-        embed.addField("Опыт", xp, true);
-        embed.addField("Уровень", getLevel(xp), true);
-
-        return embed;
+        return embed.addField("Опыт", xp, true).addField("Уровень", getLevel(xp), true);
     }
 }
 
@@ -51,12 +48,12 @@ export async function handleNewLevel(msg: Message) {
     const xpProp = getAccount(msg.member).getProperty<number>("xp", 0);
     const lvl = getLevel(xpProp.value);
 
-    const levelEmbed = new RichEmbed();
-    levelEmbed.setTitle(`${msg.member.displayName} повысил свой уровень!`);
-    levelEmbed.setThumbnail(msg.member.user.avatarURL);
-    levelEmbed.setColor(colors.AQUA);
-    levelEmbed.addField("Опыт", xpProp.value, true);
-    levelEmbed.addField("Уровень", lvl, true);
+    const levelEmbed = new RichEmbed()
+        .setTitle(`${msg.member.displayName} повысил свой уровень!`)
+        .setThumbnail(msg.member.user.avatarURL)
+        .setColor(colors.AQUA)
+        .addField("Опыт", xpProp.value, true)
+        .addField("Уровень", lvl, true);
 
     const levelMsg = (await msg.channel.send(levelEmbed)) as Message;
     if (levelMsg?.deletable) {
