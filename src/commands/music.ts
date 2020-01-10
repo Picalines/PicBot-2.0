@@ -5,27 +5,36 @@ import { setInterval } from "timers";
 import { Readable } from "stream";
 import { youtube } from "../main";
 import ytdl from "ytdl-core";
+import { youtube_v3 } from "googleapis";
 
-interface IVideoInfo {
+// google api is awsome
+interface IDWrapper {
+    id?: youtube_v3.Schema$ResourceId | string | null;
+}
+
+interface VideoInfo {
     readonly id: string;
     readonly title: string;
     readonly author: string;
     readonly duration: string;
 }
 
-interface IQueueItem {
-    readonly info: IVideoInfo;
+interface QueueItem {
+    readonly info: VideoInfo;
     readonly msg: Message;
 }
 
-interface IQueue {
-    nextItems: IQueueItem[];
-    current?: IQueueItem;
+interface Queue {
+    nextItems: QueueItem[];
+    current?: QueueItem;
     saverInterval?: NodeJS.Timeout;
 }
 
 const videoUrlStart = "https://www.youtube.com/watch?v=";
+const playlistUrlStart = "https://www.youtube.com/playlist?list=";
+
 const maxSearchResults = 5;
+const maxPlaylistItems = 25;
 
 /* https://gist.github.com/takien/4077195 */
 function getVideoID(url: string): string {
@@ -42,7 +51,7 @@ export class PlayCommand extends Command {
         group: "Музыка"
     };
 
-    private queues: { [serverId: string]: IQueue } = {};
+    private queues: { [serverId: string]: Queue } = {};
 
     private invalidLinkMsg = "ожидалась youtube ссылка на трек";
 
@@ -71,6 +80,23 @@ export class PlayCommand extends Command {
         }
     }
 
+    private getVideoUrl(video: IDWrapper) {
+        return videoUrlStart + (video.id ? typeof video.id == "string" ? video.id : video.id.videoId : "");
+    }
+
+    private async getVideoInfos(items: IDWrapper[]): Promise<VideoInfo[]> {
+        const infoPromises: Promise<ytdl.videoInfo>[] = items.filter(item => item.id).map(item => ytdl.getBasicInfo( this.getVideoUrl(item) ));
+
+        const basicInfos: ytdl.videoInfo[] = await Promise.all(infoPromises);
+
+        return basicInfos.filter(i => Number(i.length_seconds) > 0).map((i): VideoInfo => ({
+            id: i.video_id,
+            author: i.author.name,
+            duration: timestamp(Number(i.length_seconds)),
+            title: i.title
+        }));
+    }
+
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         if (!msg.member.voiceChannel) {
             throw new Error("эту команду можно использовать только в голосовом канале");
@@ -93,7 +119,6 @@ export class PlayCommand extends Command {
         }
 
         let arg = this.readText(argEnumerator);
-
         if (arg == "") {
             throw new Error(this.invalidLinkMsg);
         }
@@ -113,7 +138,7 @@ export class PlayCommand extends Command {
             }
 
             this.queues[serverId].nextItems.push({
-                msg: msg,
+                msg,
                 info: {
                     id: getVideoID(arg),
                     title: info.title,
@@ -121,6 +146,40 @@ export class PlayCommand extends Command {
                     duration: timestamp(length)
                 }
             });
+
+            await msg.reply("трек добавлен в очередь");
+        }
+        else if (arg.startsWith(playlistUrlStart) && arg.length > playlistUrlStart.length) {
+            const playlistId = arg.slice(playlistUrlStart.length);
+
+            const videos = await youtube.playlistItems.list({
+                playlistId,
+                part: "snippet",
+                fields: "items(snippet/resourceId/videoId)",
+                maxResults: maxPlaylistItems
+            });
+
+            if (!videos.data.items || videos.data.items.length == 0) {
+                throw new Error("ничего не найдено");
+            }
+
+            const infos = await this.getVideoInfos(videos.data.items.map((i): IDWrapper => ({
+                id: i.snippet?.resourceId?.videoId
+            })));
+            
+            if (infos.length == 0) {
+                throw new Error("ничего не найдено");
+            }
+
+            this.queues[serverId].nextItems.push(...infos.map((info): QueueItem => ({ msg, info })));
+
+            let m = `${infos.length} треков из плейлиста добавлено в очередь`;
+
+            if (infos.length == maxPlaylistItems) {
+                m += " (это мой максимум по кол-ву треков из плейлиста!)"
+            }
+
+            await msg.reply(m);
         }
         else {
             const videos = await youtube.search.list({
@@ -134,21 +193,11 @@ export class PlayCommand extends Command {
                 throw new Error("ничего не найдено");
             }
 
-            const infoPromises: Promise<ytdl.videoInfo>[] = videos.data.items
-                .map(item => ytdl.getBasicInfo(videoUrlStart + (item.id ? item.id.videoId : "")));
-
-            const basicInfos: ytdl.videoInfo[] = await Promise.all(infoPromises);
-            const infos: IVideoInfo[] = basicInfos.map((i): IVideoInfo => ({
-                id: i.video_id,
-                author: i.author.name,
-                duration: timestamp(Number(i.length_seconds)),
-                title: i.title
-            })).filter(i => i.duration != "00:00:00");
-
+            const infos = await this.getVideoInfos(videos.data.items);
             if (infos.length == 0) {
                 throw new Error("ничего не найдено");
             }
-
+            
             const searchEmbed = new RichEmbed()
                 .setColor(colors.AQUA)
                 .setTitle(`Выберете 1 из ${infos.length} результатов поиска`);
@@ -175,9 +224,9 @@ export class PlayCommand extends Command {
                 msg: msg,
                 info: choice
             });
-        }
 
-        await msg.reply("трек добавлен в очередь");
+            await msg.reply("трек добавлен в очередь");
+        }
 
         if (!this.connectedTo(msg.member.voiceChannel)) {
             let connection = await msg.member.voiceChannel.join();
@@ -196,6 +245,10 @@ export class PlayCommand extends Command {
         }
 
         const serverId = channel.guild.id;
+
+        if (!this.queues[serverId]) {
+            this.queues[serverId] = { nextItems: [] };
+        }
 
         let queue = this.queues[serverId].nextItems;
 
@@ -259,7 +312,7 @@ export class PlayCommand extends Command {
         });
     }
 
-    getQueue(guild: Guild | Message): IQueue | undefined {
+    getQueue(guild: Guild | Message): Queue | undefined {
         if (guild instanceof Message) {
             guild = guild.guild;
         }
@@ -292,7 +345,7 @@ export class CurrentQueueCommand extends Command {
         group: "Музыка"
     };
 
-    private formatQueueItem(item: IQueueItem): string {
+    private formatQueueItem(item: QueueItem): string {
         return `${item.info.author} -> ${item.info.title} (${item.info.duration})`
     }
 
@@ -402,7 +455,7 @@ export class LoopCommand extends Command {
         group: "Музыка"
     };
 
-    private queueCopies: { [id: string]: IQueueItem[] } = {};
+    private queueCopies: { [id: string]: QueueItem[] } = {};
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         const playCommand = checkAvailable(msg);
@@ -434,7 +487,7 @@ export class LoopCommand extends Command {
         return this.queueCopies[serverId] != undefined;
     }
 
-    getCopy(serverId: string): IQueueItem[] {
+    getCopy(serverId: string): QueueItem[] {
         return this.queueCopies[serverId];
     }
 
