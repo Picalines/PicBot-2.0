@@ -345,8 +345,12 @@ export class CurrentQueueCommand extends Command {
         group: "Музыка"
     };
 
+    private lastAuthor = "";
+
     private formatQueueItem(item: QueueItem): string {
-        return `${item.info.author} -> ${item.info.title} (${item.info.duration})`
+        let displayAuthor = item.info.author == this.lastAuthor ? "○" : item.info.author + " ->";
+        this.lastAuthor = item.info.author;
+        return `${displayAuthor} ${item.info.title} (${item.info.duration})`
     }
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
@@ -362,7 +366,9 @@ export class CurrentQueueCommand extends Command {
             .setColor(colors.AQUA)
             .setTitle("**Дальше будут играть**");
 
+        this.lastAuthor = "";
         const allFormat = queue.reduce((acc, item) => acc + this.formatQueueItem(item) + "\n", "");
+        this.lastAuthor = "";
 
         try {
             qEmbed.setDescription(allFormat);
