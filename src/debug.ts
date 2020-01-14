@@ -37,7 +37,7 @@ export abstract class Debug {
     }
 
     static async Save() {
-        if (this.lastLogs.length == 0) return;
+        if (this.lastLogs.length == 0 || this.lastLogs.find(l => l.match(/^\[.+\] /g))) return;
 
         const text = this.lastLogs.reduce((acc, log) => acc + log + "\n", `\n/* SAVED AT ${Date()} */\n\n`);
         await fs.appendFile(String(process.env.LOGS_PATH || "./logs.txt"), text);

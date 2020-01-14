@@ -108,12 +108,12 @@ bot.on("message", async msg => {
 });
 
 bot.on("guildBanRemove", async (guild, user) => {
-    let ch = guild.systemChannel as Discord.TextChannel;
+    const ch = guild.systemChannel as Discord.TextChannel;
     await ch?.send(`Осторожно! ${user.toString()} вышел на свободу!`);
 });
 
 bot.on("guildMemberAdd", async member => {
-    let ch = member.guild.systemChannel as Discord.TextChannel;
+    const ch = member.guild.systemChannel as Discord.TextChannel;
     await ch?.send(`Здравствуй, *${member}*!`);
     await handleProgression(member, ch);
 });
@@ -124,6 +124,8 @@ bot.on("guildMemberRemove", member => {
 
 bot.on("guildCreate", async guild => {
     Debug.Log(`joined guild '${guild.nameAcronym}' (id: ${guild.id})`);
+    const ch = guild.systemChannel as Discord.TextChannel;
+    await ch?.send("Здравствуйте!");
 });
 
 bot.on("guildDelete", async guild => {

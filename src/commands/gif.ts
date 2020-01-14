@@ -1,5 +1,5 @@
 import { Command, CommandInfo, ArgumentEnumerator, SyntaxArgument } from "../command";
-import { getMemberFromMention, getRandomFromArray } from "../utils";
+import { getMemberFromMention, randomFrom } from "../utils";
 import { Message, RichEmbed, GuildMember } from "discord.js";
 import { assetsFolderPath } from "../database";
 import { Debug } from "../debug";
@@ -23,7 +23,7 @@ function generateGifCommand(className: string, name: string, description: string
 
         async run(msg: Message, argEnumerator: ArgumentEnumerator) {
             let targetMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера", "");
-            let target: GuildMember | undefined = targetMention != "" ? getMemberFromMention(msg.guild, targetMention) : undefined;
+            let target: GuildMember | undefined = targetMention != "" ? getMemberFromMention(msg.guild, targetMention, false) : undefined;
 
             let useCase: IGifCommandCase | undefined = undefined;
             for (let c of cases) {
@@ -60,7 +60,7 @@ function generateGifCommand(className: string, name: string, description: string
                 embed = await useCase.setEmbed(new RichEmbed());
             }
             else if (useCase.images && useCase.images.length > 0) {
-                let img = getRandomFromArray(useCase.images);
+                let img = randomFrom(useCase.images);
                 if (img != "null") {
                     embed = new RichEmbed().setImage(img);
                 }
@@ -75,6 +75,14 @@ generateGifCommand("HugCommand", "hug", "ты обнимаешь `member`", [["u
     {
         condition: (a, b) => a == b,
         message: "%author% страдает от одиночества..."
+    },
+    {
+        condition: (a, b) => b == b?.guild.me,
+        message: () => randomFrom(["Спасибо :3", "Пасеба :>"]),
+        images: [
+            "https://media.giphy.com/media/QMkPpxPDYY0fu/giphy.gif",
+            "https://media.giphy.com/media/KL7xA3fLx7bna/giphy.gif"
+        ]
     },
     {
         message: "%author% обнимает %target%",
@@ -105,11 +113,19 @@ generateGifCommand("EatCommand", "eat", "ты ешь `member`", [["user", "membe
         setEmbed: (embed: RichEmbed) => Math.random() <= 0.3 ? embed.attachFile(assetsFolderPath + "eatYorself.png").setDescription("?") : undefined
     },
     {
+        condition: (a, b) => b == b?.guild.me,
+        message: "0_o"
+    },
+    {
         message: "%author% ест %target%"
     }
 ]);
 
 generateGifCommand("FbiCommand", "fbi", "ты вызываешь fbi", [["user", "target"]], [
+    {
+        condition: (a, b) => b == b?.guild.me,
+        message: "А со мной-то чё не так..."
+    },
     {
         message: "- Алло, ФБР? МЫ НАШЛИ %TARGET%...!\n- ВЫЕЗЖАЕМ!",
         images: [
@@ -124,6 +140,10 @@ generateGifCommand("PunchCommand", "punch", "ты ударяешь `member`", [[
     {
         condition: (a, b) => a == b,
         message: "Зачем ты бьёшь самого себя? Тебе нужна помошь?"
+    },
+    {
+        condition: (a, b) => b == b?.guild.me,
+        message: () => randomFrom(["ай(", "больна ващета...", ":<(", "ща девиантом стану...", ":["])
     },
     {
         message: "%author% бьёт %target%",
