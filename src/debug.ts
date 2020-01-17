@@ -32,7 +32,7 @@ export abstract class Debug {
         }
 
         if (type == "error") {
-            this.Save().then(() => console.log("\nerror data saved\n"));
+            Debug.Save().then(() => console.log("\nerror data saved\n"));
         }
     }
 

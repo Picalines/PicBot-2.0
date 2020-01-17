@@ -7,7 +7,7 @@ import { Debug } from "../debug";
 interface IGifCommandCase {
     message: string | (() => string);
     images?: string[];
-    condition?: (b: GuildMember, a?: GuildMember) => boolean;
+    condition?: (a: GuildMember, b?: GuildMember) => boolean;
     setEmbed?: (embed: RichEmbed) => Promise<RichEmbed> | RichEmbed | undefined;
 }
 
@@ -22,27 +22,18 @@ function generateGifCommand(className: string, name: string, description: string
         }
 
         async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-            let targetMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера", "");
-            let target: GuildMember | undefined = targetMention != "" ? getMemberFromMention(msg.guild, targetMention, false) : undefined;
+            const targetMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера", "");
+            const target: GuildMember | undefined = targetMention != "" ? getMemberFromMention(msg.guild, targetMention, false) : undefined;
 
-            let useCase: IGifCommandCase | undefined = undefined;
-            for (let c of cases) {
-                if (c.condition == undefined || c.condition(msg.member, target)) {
-                    useCase = c;
-                    break;
-                }
-            }
+            const useCase: IGifCommandCase | undefined = cases.find(c => c.condition == undefined || c.condition(msg.member, target));
 
             if (useCase == undefined) {
                 Debug.Log(`use cases for ${name} is invalid`, "error");
+                await msg.reply(".-.");
                 return;
             }
 
-            let message = useCase.message;
-
-            if (typeof message != "string") {
-                message = message();
-            }
+            let message = typeof useCase.message == "string" ? useCase.message : useCase.message();
 
             if ((message.includes("%target%") || message.includes("%TARGET%")) && target == undefined) {
                 throw new SyntaxError("ожидалось упоминание участника сервера");
@@ -77,7 +68,7 @@ generateGifCommand("HugCommand", "hug", "ты обнимаешь `member`", [["u
         message: "%author% страдает от одиночества..."
     },
     {
-        condition: (a, b) => b == b?.guild.me,
+        condition: (a, b) => b != undefined && b == b.guild.me,
         message: () => randomFrom(["Спасибо :3", "Пасеба :>"]),
         images: [
             "https://media.giphy.com/media/QMkPpxPDYY0fu/giphy.gif",
@@ -113,7 +104,7 @@ generateGifCommand("EatCommand", "eat", "ты ешь `member`", [["user", "membe
         setEmbed: (embed: RichEmbed) => Math.random() <= 0.3 ? embed.attachFile(assetsFolderPath + "eatYorself.png").setDescription("?") : undefined
     },
     {
-        condition: (a, b) => b == b?.guild.me,
+        condition: (a, b) => b != undefined && b == b.guild.me,
         message: "0_o"
     },
     {
@@ -123,7 +114,7 @@ generateGifCommand("EatCommand", "eat", "ты ешь `member`", [["user", "membe
 
 generateGifCommand("FbiCommand", "fbi", "ты вызываешь fbi", [["user", "target"]], [
     {
-        condition: (a, b) => b == b?.guild.me,
+        condition: (a, b) => b != undefined && b == b.guild.me,
         message: "А со мной-то чё не так..."
     },
     {
@@ -142,7 +133,7 @@ generateGifCommand("PunchCommand", "punch", "ты ударяешь `member`", [[
         message: "Зачем ты бьёшь самого себя? Тебе нужна помошь?"
     },
     {
-        condition: (a, b) => b == b?.guild.me,
+        condition: (a, b) => b != undefined && b == b.guild.me,
         message: () => randomFrom(["ай(", "больна ващета...", ":<(", "ща девиантом стану...", ":["])
     },
     {
