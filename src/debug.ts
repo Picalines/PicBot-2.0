@@ -2,10 +2,15 @@ import * as fs from "./fsAsync";
 
 export type LogType = "event" | "error" | "warning"
 
+interface Log {
+    type: LogType;
+    msg: string;
+}
+
 export abstract class Debug {
     private static datePattern = /.+(\d+:){2}\d+/;
 
-    private static lastLogs: string[] = [];
+    private static lastLogs: Log[] = [];
 
     private static getDate(): string {
         const res = this.datePattern.exec(Date());
@@ -26,7 +31,7 @@ export abstract class Debug {
         console.log(m);
 
         const lastCount = Number(process.env.LAST_LOGS_COUNT) || 3;
-        this.lastLogs.push(m);
+        this.lastLogs.push({ type, msg: m });
         if (this.lastLogs.length > lastCount) {
             this.lastLogs.shift();
         }
@@ -37,9 +42,9 @@ export abstract class Debug {
     }
 
     static async Save() {
-        if (this.lastLogs.length == 0 || this.lastLogs.find(l => l.match(/^\[.+\] /g))) return;
+        if (this.lastLogs.find(l => l.type == "error") == undefined) return;
 
-        const text = this.lastLogs.reduce((acc, log) => acc + log + "\n", `\n/* SAVED AT ${Date()} */\n\n`);
+        const text = this.lastLogs.reduce((acc, log) => acc + log.msg + "\n", `\n/* SAVED AT ${Date()} */\n\n`);
         await fs.appendFile(String(process.env.LOGS_PATH || "./logs.txt"), text);
         
         this.lastLogs = [];
