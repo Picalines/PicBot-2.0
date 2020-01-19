@@ -35,7 +35,17 @@ bot.on("ready", async () => {
 });
 
 bot.on("message", async msg => {
-    if (msg.member.user && msg.member.user.bot) return;
+    if (msg.author.bot) return;
+
+    if (msg.channel.type == "dm" && msg.author.id == (process.env.DISCORD_OWNER_ID || "")) {
+        switch (msg.content) {
+            case "reload": await loadCommands(); break;
+            case "exit": await onClose(true);
+        }
+    }
+    if (msg.channel.type != "text") {
+        return;
+    }
 
     const guildData = getGuildData(msg);
     const acc = guildData.getAccount(msg.member);
@@ -168,7 +178,7 @@ async function onClose(exit: boolean) {
     await bot.destroy();
     Debug.Log("program closed");
     if (exit) {
-        process.exit();
+        process.exit(0);
     }
 }
 

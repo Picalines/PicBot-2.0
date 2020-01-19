@@ -70,7 +70,7 @@ export abstract class Command {
         return argEnumerator.current().value;
     }
 
-    protected readText(argEnumerator: ArgumentEnumerator, matchEnd?: (t: Token) => boolean, removeStringChars: boolean = false): string {
+    protected readText(argEnumerator: ArgumentEnumerator, matchEnd?: (t: Token) => boolean, guild?: Discord.Guild): string {
         if (matchEnd == undefined) {
             matchEnd = () => false;
         }
@@ -78,13 +78,25 @@ export abstract class Command {
         let result = "";
         while (argEnumerator.moveNext()) {
             const t = argEnumerator.current();
-            if (!matchEnd(t)) {
-                let v = t.value;
-                if (t.type == "string" && removeStringChars) {
-                    v = v.replace(/^("|')/, "").replace(/("|')$/, "");
-                }
-                result += v + " ";
+            if (matchEnd(t)) {
+                break;
             }
+            let v = t.value;
+            switch (t.type) {
+                case "string": v = v.replace(/^("|')/, "").replace(/("|')$/, ""); break;
+                case "user":
+                    if (guild) {
+                        const id = v.match(/\d+/);
+                        let member = guild.member(id ? id[0] : "");
+                        v = member ? member.displayName : v;
+                    }
+                    break;
+            }
+            result += v + " ";
+        }
+
+        if (result == "") {
+            throw new Error("ожидался текст");
         }
 
         return result.slice(0, -1);
@@ -121,8 +133,10 @@ export async function loadCommands() {
 
     (await readdir(commandsFolderPath)).filter(f => f.endsWith(".js")).forEach(f => {
         Debug.Log(`loading '${f}'...`);
-        let cmodule = require(commandsFolderPath + f);
-        for (let k in cmodule) {
+        const path = commandsFolderPath + f;
+        delete require.cache[path];
+        const cmodule = require(path);
+        for (const k in cmodule) {
             if ((k == "default" || k.endsWith("Command")) && cmodule[k] instanceof Function) {
                 commands.push(new cmodule[k]());
             }

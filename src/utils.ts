@@ -8,6 +8,10 @@ export function delay(ms: number) {
     return new Promise(res => setTimeout(res, ms));
 }
 
+export function clamp(value: number, min: number, max: number) {
+    return Math.max(min, Math.min(value, max));
+}
+
 export const nameof = <T>(name: keyof T): string => name.toString();
 
 export interface ISerializeable {
