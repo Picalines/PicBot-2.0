@@ -123,6 +123,7 @@ bot.on("guildBanRemove", async (guild, user) => {
 });
 
 bot.on("guildMemberAdd", async member => {
+    if (member.user.bot) return;
     const ch = member.guild.systemChannel as Discord.TextChannel;
     await ch?.send(`Здравствуй, *${member}*!`);
     await handleProgression(member, ch);

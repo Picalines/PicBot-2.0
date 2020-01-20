@@ -73,6 +73,8 @@ export class ProgressCommand extends Command {
 }
 
 export async function handleProgression(member: GuildMember, channel?: TextChannel) {
+    if (member.user.bot) return;
+    
     const guildData = getGuildData(member);
     const lvl = getLevel(getAccount(member).getProperty<number>("xp", 0).value);
 
