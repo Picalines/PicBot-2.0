@@ -146,6 +146,10 @@ export async function loadCommands() {
 }
 
 export async function runCommand(msg: Discord.Message, command: Command, realName?: string) {
+    if (!command.checkPermission(msg.member)) {
+        await msg.reply("ты не можешь использовать эту команду :/");
+        return;
+    }
     try {
         const cname = realName === undefined ? command.info.name.toLowerCase() : realName.toLowerCase();
         const input = msg.content.slice(msg.content.toLowerCase().search(cname) + cname.length);

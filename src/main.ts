@@ -78,12 +78,7 @@ bot.on("message", async msg => {
     let command = findCommand(c => cname == c.info.name.toLowerCase());
 
     if (command != undefined) {
-        if (!command.checkPermission(msg.member)) {
-            await msg.reply("ты не можешь использовать эту команду :/");
-        }
-        else {
-            await runCommand(msg, command);
-        }
+        await runCommand(msg, command);
     }
     else {
         let errMsg = `Команда \`${cname}\` не найдена`;
