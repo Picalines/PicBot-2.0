@@ -41,6 +41,7 @@ export async function saveGuilds() {
     await fs.checkFolder(databaseFolderPath);
     await fs.checkFolder(guildsFolderPath);
     for (const guild of Object.values(guildsData)) {
+        guild.cleanAccounts();
         let serialized = JSON.stringify(guild.serialize());
         await fs.writeFile(guildsFolderPath + guild.guild.id + ".json", serialized);
     }

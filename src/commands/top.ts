@@ -26,30 +26,50 @@ export class TopCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         const guildData = getGuildData(msg);
 
+        const options: string[] = [];
+        while (argEnumerator.moveNext()) options.push(argEnumerator.current().value);
+
         const topEmbed = new RichEmbed()
             .setTitle("Топ участников сервера")
             .setColor(colors.GOLD);
 
-        const rawAccounts = Object.values(guildData.accounts).filter(a => a.hasProperty("xp") && a.member != null);
+        const rawMembers = msg.guild.members.values();
         let accounts: AccData[] = [];
 
-        for (const r of rawAccounts) {
-            if (r.member != null) {
-                accounts.push({ member: r.member, xp: r.getProperty<number>("xp", 0).value });
-            }
+        for (const member of rawMembers) {
+            if (member.user.bot) continue;
+            const acc = guildData.getAccount(member);
+            const xp = acc.getProperty<number>("xp", 0).value;
+            accounts.push({ member, xp });
         }
 
-        accounts = accounts.sort(compareAccounts).slice(0, maxMembers);
+        guildData.cleanAccounts();
+
+        const isMembersLazy = options.includes("lazy");
+        if (isMembersLazy) {
+            accounts = accounts.filter(acc => acc.xp == 0);
+        }
+
+        accounts = accounts.sort(compareAccounts);
+
+        if (options.includes("reverse")) {
+            accounts = accounts.reverse();
+        }
+
+        const page = Math.abs(parseInt(options.find(opt => parseInt(opt) != NaN) as string)) || 0;
+        const offset = page * maxMembers;
+
+        accounts = accounts.slice(offset, offset + maxMembers);
 
         if (accounts.length == 0) {
-            throw new Error("");
+            throw new Error("ничего не найдено");
         }
 
         topEmbed.setThumbnail(accounts[0].member.user.avatarURL);
 
         for (let i = 0; i < accounts.length; i++) {
             const a = accounts[i];
-            topEmbed.addField(`#${i+1} ${a.member.displayName}`, `Опыт: ${a.xp}, Уровень: ${getLevel(a.xp)}`);
+            topEmbed.addField(`#${offset + i + 1} ${a.member.displayName}`, `Опыт: ${a.xp}, Уровень: ${getLevel(a.xp)}`);
         }
 
         await msg.reply(topEmbed);

@@ -68,7 +68,9 @@ export class GuildData extends DataObject {
     serializeAccounts(): IAccountData[] {
         let accs: IAccountData[] = [];
         for (const id in this.accounts) {
-            accs.push(this.accounts[id].serialize());
+            if (this.accounts[id].properties.length > 0) {
+                accs.push(this.accounts[id].serialize());
+            }
         }
         return accs;
     }
@@ -80,6 +82,17 @@ export class GuildData extends DataObject {
             "properties": super.serialize(),
             "accounts": this.serializeAccounts()
         }
+    }
+
+    cleanAccounts() {
+        const result: { [id: string]: Account } = {};
+        for (const id in this.accounts) {
+            const acc = this.accounts[id];
+            if ((acc.properties.length == 1 && acc.getProperty<number>("xp", 0).value > 0) || acc.properties.length > 1) {
+                result[id] = this.accounts[id];
+            }
+        }
+        this.accounts = result;
     }
 }
 

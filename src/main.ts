@@ -35,7 +35,7 @@ bot.on("ready", async () => {
 });
 
 bot.on("message", async msg => {
-    if (msg.author.bot) return;
+    if (msg.author.bot || msg.system) return;
 
     if (msg.channel.type == "dm" && msg.author.id == (process.env.DISCORD_OWNER_ID || "")) {
         switch (msg.content) {
