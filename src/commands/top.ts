@@ -56,7 +56,7 @@ export class TopCommand extends Command {
             accounts = accounts.reverse();
         }
 
-        const page = Math.abs(parseInt(options.find(opt => parseInt(opt) != NaN) as string)) || 0;
+        const page = Math.abs(parseInt(options.find(opt => !isNaN(parseInt(opt))) as string)) || 0;
         const offset = page * maxMembers;
 
         accounts = accounts.slice(offset, offset + maxMembers);
