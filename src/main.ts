@@ -1,6 +1,7 @@
 import { loadCommands, findCommand, commands, runCommand } from "./command";
 import { delay, generateErrorEmbed, emojis } from "./utils";
 import { getGuildData, deleteGuildData } from "./guildData";
+import { runScript, resetLoadedScripts } from "./scripting";
 import { getLevel, handleNewLevel } from "./commands/stats";
 import { handleProgression } from "./commands/progress";
 import { findBestMatch } from "string-similarity";
@@ -39,7 +40,9 @@ bot.on("message", async msg => {
 
     if (msg.channel.type == "dm" && msg.author.id == (process.env.DISCORD_OWNER_ID || "")) {
         switch (msg.content) {
-            case "reload": await loadCommands(); break;
+            case "reload": resetLoadedScripts(); await loadCommands(); break;
+            case "reload scripts": resetLoadedScripts(); break;
+            case "reload commands": await loadCommands(); break;
             case "exit": await onClose(true);
         }
     }
@@ -65,7 +68,10 @@ bot.on("message", async msg => {
 
     const prefix: string | undefined = guildData.prefixes.find(p => msg.content.toLowerCase().startsWith(p.toLowerCase()));
 
-    if (prefix == undefined) return;
+    if (prefix == undefined) {
+        await runScript(msg.guild, "message", { msg });
+        return;
+    }
 
     const noPrefixContent = msg.content.slice(prefix.length);
     const cname = (noPrefixContent.split(" ")[0] || "").toLowerCase();
