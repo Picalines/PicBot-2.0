@@ -69,7 +69,12 @@ bot.on("message", async msg => {
     const prefix: string | undefined = guildData.prefixes.find(p => msg.content.toLowerCase().startsWith(p.toLowerCase()));
 
     if (prefix == undefined) {
-        await runScript(msg.guild, "message", { msg });
+        try {
+            await runScript(msg.guild, "message", [ msg ]);
+        }
+        catch (err) {
+            await msg.channel.send(generateErrorEmbed(err));
+        }
         return;
     }
 
