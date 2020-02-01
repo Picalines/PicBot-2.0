@@ -66,6 +66,7 @@ export class GuildData extends DataObject {
     }
 
     serializeAccounts(): IAccountData[] {
+        this.cleanAccounts();
         let accs: IAccountData[] = [];
         for (const id in this.accounts) {
             if (this.accounts[id].properties.length > 0) {
@@ -124,12 +125,10 @@ export function deserializeGuildData(data: any): GuildData {
         if (guild != null) {
             let guildData = new GuildData(guild, data.properties);
 
-            if (data.accounts) {
-                for (const j in data.accounts) {
-                    const acc: IAccountData = data.accounts[j];
-                    if (!guildData.setAccount(acc)) {
-                        Debug.Log(`account data #${j} (${acc.id}) ignored`, "warning");
-                    }
+            for (const j in data.accounts || []) {
+                const acc: IAccountData = data.accounts[j];
+                if (!guildData.setAccount(acc)) {
+                    Debug.Log(`account data #${j} (${acc.id}) ignored`, "warning");
                 }
             }
 

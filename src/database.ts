@@ -25,14 +25,19 @@ export async function loadGuilds() {
     Debug.Log("loading guilds data...");
     await fs.checkFolder(databaseFolderPath);
     await fs.checkFolder(guildsFolderPath);
+
     const files = (await fs.readdir(guildsFolderPath)).filter(f => f.endsWith(".json"));
-    for (const file of files) {
+
+    const loads: Promise<void>[] = files.map(file => (async () => {
         const id = file.replace(".json", "");
         if (bot.guilds.find(g => g.id == id) != null) {
-            let data = await fs.readJson(guildsFolderPath + file);
+            const data = await fs.readJson(guildsFolderPath + file);
             guildsData[id] = deserializeGuildData(data);
         }
-    }
+    })());
+
+    await Promise.all(loads);
+
     Debug.Log("guilds data successfully loaded");
 }
 
@@ -40,11 +45,14 @@ export async function saveGuilds() {
     Debug.Log("saving guilds data...");
     await fs.checkFolder(databaseFolderPath);
     await fs.checkFolder(guildsFolderPath);
-    for (const guild of Object.values(guildsData)) {
-        guild.cleanAccounts();
-        let serialized = JSON.stringify(guild.serialize());
-        await fs.writeFile(guildsFolderPath + guild.guild.id + ".json", serialized);
-    }
+
+    const writes: Promise<void>[] = Object.values(guildsData).map(guild => {
+        const serialized = JSON.stringify(guild.serialize());
+        return fs.writeFile(guildsFolderPath + guild.guild.id + ".json", serialized);
+    });
+
+    await Promise.all(writes);
+
     Debug.Log("guilds data successfully saved");
 }
 

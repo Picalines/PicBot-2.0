@@ -155,6 +155,15 @@ export function randomFrom<T>(arr: T[]): T {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
+export function isOneOf<T>(value: T, ...variants: T[]): boolean {
+    for (const v of variants) {
+        if (value == v) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // #region discord colors
 
 type ColorName = "DEFAULT"

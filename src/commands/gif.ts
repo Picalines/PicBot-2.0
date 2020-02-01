@@ -21,6 +21,8 @@ function generateGifCommand(className: string, name: string, description: string
             group: "Фан"
         }
 
+        private targetRegex = /%(target|TARGET)%/g;
+
         async run(msg: Message, argEnumerator: ArgumentEnumerator) {
             const targetMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера", "");
             const target: GuildMember | undefined = targetMention != "" ? getMemberFromMention(msg.guild, targetMention, false) : undefined;
@@ -35,7 +37,7 @@ function generateGifCommand(className: string, name: string, description: string
 
             let message = typeof useCase.message == "string" ? useCase.message : useCase.message();
 
-            if ((message.includes("%target%") || message.includes("%TARGET%")) && target == undefined) {
+            if (this.targetRegex.test(message) && target == undefined) {
                 throw new SyntaxError("ожидалось упоминание участника сервера");
             }
 

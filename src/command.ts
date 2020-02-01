@@ -1,4 +1,4 @@
-import { Enumerator, generateErrorEmbed } from "./utils";
+import { Enumerator, generateErrorEmbed, isOneOf } from "./utils";
 import { Token, Tokenizer } from "./tokenizer";
 import { readdir } from "./fsAsync";
 import { SyntaxError } from "./error";
@@ -64,10 +64,18 @@ export abstract class Command {
                 return defaultValue;
             }
         }
-        if (argEnumerator.current().type != type) {
+
+        const current = argEnumerator.current();
+
+        if (current.type != type) {
             throw new SyntaxError(argEnumerator, syntaxErrMsg);
         }
-        return argEnumerator.current().value;
+
+        if (isOneOf<ArgumentType>(current.type, "int", "float") && isNaN(Number(current.value))) {
+            throw new SyntaxError(argEnumerator, "странное число - " + current.value);
+        }
+
+        return current.value;
     }
 
     protected readText(argEnumerator: ArgumentEnumerator, matchEnd?: (t: Token) => boolean, guild?: Discord.Guild): string {
@@ -82,21 +90,21 @@ export abstract class Command {
                 break;
             }
             let v = t.value;
-            switch (t.type) {
-                case "string": v = v.replace(/^("|')/, "").replace(/("|')$/, ""); break;
-                case "user":
-                    if (guild) {
-                        const id = v.match(/\d+/);
-                        let member = guild.member(id ? id[0] : "");
-                        v = member ? member.displayName : v;
-                    }
-                    break;
+            if (t.type == "string") {
+                v = v.replace(/^("|')/, "").replace(/("|')$/, "");
             }
             result += v + " ";
         }
 
         if (result == "") {
             throw new Error("ожидался текст");
+        }
+
+        if (guild) {
+            result = result.replace(commandTokenizer.getRegex("user"), (mention, id) => {
+                const member = guild.member(id);
+                return member ? member.displayName : mention;
+            });
         }
 
         return result.slice(0, -1);
@@ -106,12 +114,12 @@ export abstract class Command {
 export const commandTokenizer = new Tokenizer<ArgumentType>({
     string: /(".*?")|('.*?')/,
     space: /\s+/,
-    user: /<@\!?\d+>/g,
-    role: /<@&\d+>/g,
-    channel: /<#\d+>/g,
+    user: /<@\!?(?<id>\d+)>/g,
+    role: /<@&(?<id>\d+)>/g,
+    channel: /<#(?<id>\d+)>/g,
     everyone: /@everyone/g,
     here: /@here/g,
-    float: /(\d+)\.(\d+)/g,
+    float: /\d+(\.\d+)*/g,
     int: /(\d+)/g,
     word: /[^ ]+/
 });
