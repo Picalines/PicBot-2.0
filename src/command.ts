@@ -119,7 +119,7 @@ export const commandTokenizer = new Tokenizer<ArgumentType>({
     channel: /<#(?<id>\d+)>/g,
     everyone: /@everyone/g,
     here: /@here/g,
-    float: /\d+(\.\d+)*/g,
+    float: /\d+(\.\d+)+/g,
     int: /(\d+)/g,
     word: /[^ ]+/
 });
