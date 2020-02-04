@@ -4,6 +4,7 @@ import { Message } from "discord.js";
 export class EchoCommand extends Command {
     info: CommandInfo = {
         name: "echo",
+        aliases: ["say"],
         syntax: [["string", "message"]],
         description: "бот пишет сообщение `message`",
         permission: "everyone"

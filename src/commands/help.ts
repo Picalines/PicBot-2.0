@@ -95,12 +95,17 @@ export class HelpCommand extends Command {
     }
 
     private generateCommandHelp(info: CommandInfo): RichEmbed {
-        return new RichEmbed()
+        const embed = new RichEmbed()
             .setTitle(`Информация о команде \`${info.name}\``)
             .setColor(colors.GREEN)
             .addField("Описание", info.description)
-            .addField("Аргументы", info.syntax != undefined ? Command.syntaxToString(info.syntax) : "*нету*")
-            .addField("Группа", info.group || "Другое")
+            .addField("Аргументы", info.syntax != undefined ? Command.syntaxToString(info.syntax) : "*нету*");
+
+        if (info.aliases) {
+            embed.addField("Алиасы", `${info.aliases.join(", ")}`)
+        }
+        
+        return embed.addField("Группа", info.group || "Другое");
     }
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
@@ -116,7 +121,7 @@ export class HelpCommand extends Command {
             await msg.reply(this.typesHelp);
         }
         else {
-            const c = findCommand(cc => cc.info.name == name);
+            const c = findCommand(c => c.matchesName(name));
 
             if (c == undefined) {
                 throw new Error(`Информация о команде '${name}' не найдена`);

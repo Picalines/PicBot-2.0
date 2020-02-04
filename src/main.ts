@@ -1,5 +1,5 @@
 import { loadCommands, findCommand, commands, runCommand } from "./command";
-import { delay, generateErrorEmbed, emojis } from "./utils";
+import { delay, generateErrorEmbed, emojis, flat } from "./utils";
 import { getGuildData, deleteGuildData } from "./guildData";
 import { runScript, resetLoadedScripts } from "./scripting";
 import { getLevel, handleNewLevel } from "./commands/stats";
@@ -41,8 +41,8 @@ bot.on("message", async msg => {
     if (msg.channel.type == "dm" && msg.author.id == (process.env.DISCORD_OWNER_ID || "")) {
         switch (msg.content) {
             case "reload": resetLoadedScripts(); await loadCommands(); break;
-            case "reload scripts": resetLoadedScripts(); break;
-            case "reload commands": await loadCommands(); break;
+            case "reload s": resetLoadedScripts(); break;
+            case "reload c": await loadCommands(); break;
             case "exit": await onClose(true);
         }
     }
@@ -86,15 +86,15 @@ bot.on("message", async msg => {
         return;
     }
 
-    let command = findCommand(c => cname == c.info.name.toLowerCase());
+    let command = findCommand(c => c.matchesName(cname));
 
     if (command != undefined) {
-        await runCommand(msg, command);
+        await runCommand(msg, cname, command);
     }
     else {
         let errMsg = `Команда \`${cname}\` не найдена`;
 
-        const commandNames = commands.map(c => c.info.name.toLowerCase());
+        const commandNames = flat(commands.map(c => [c.info.name, ...(c.info.aliases || [])]));
         const bestMatches = findBestMatch(cname, commandNames);
         const nearest = bestMatches.bestMatch.target;
         
@@ -111,13 +111,13 @@ bot.on("message", async msg => {
                 await rmsg.delete();
             }
             
-            command = findCommand(c => c.info.name.toLowerCase() == nearest);
+            command = findCommand(c => c.matchesName(nearest));
 
             if (command == undefined) {
                 await msg.reply(generateErrorEmbed("произошла неизвестная ошибка"));
             }
             else {
-                await runCommand(msg, command, cname);
+                await runCommand(msg, cname, command);
             }
         }
     }

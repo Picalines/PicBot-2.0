@@ -45,6 +45,7 @@ function getVideoID(url: string): string {
 export class PlayCommand extends Command {
     info: CommandInfo = {
         name: "play",
+        aliases: ["music"],
         syntax: [["word", "link|search"]],
         description: "бот начинает играть / добавляет в очередь трек по ссылке / поисковому запросу",
         permission: "everyone",

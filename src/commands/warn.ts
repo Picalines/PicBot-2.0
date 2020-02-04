@@ -80,7 +80,7 @@ export class UnwarnCommand extends Command {
 
 export class ClearWarnsCommand extends Command {
     info: CommandInfo = {
-        name: "clearWarns",
+        name: "clearwarns",
         syntax: [["user", "mention"]],
         description: "снимает все предупреждения с участника сервера `mention`",
         permission: "admin",
@@ -106,7 +106,7 @@ export class ClearWarnsCommand extends Command {
 
 export class MaxWarnsCommand extends Command {
     info: CommandInfo = {
-        name: "setMaxWarns",
+        name: "setmaxwarns",
         syntax: [["int", "n"]],
         description: "ставит максимальное число предупреждений до бана",
         permission: "admin",

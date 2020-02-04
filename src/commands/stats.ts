@@ -7,6 +7,7 @@ import { handleProgression } from "./progress";
 export class StatsCommand extends Command {
     info: CommandInfo = {
         name: "stats",
+        aliases: ["profile", "account"],
         syntax: [["user", "member", false]],
         description: "бот пишет вашу статистику на сервере",
         permission: "everyone"
