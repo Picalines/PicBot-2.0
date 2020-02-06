@@ -16,7 +16,7 @@ export class WarnCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         const memberMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера");
 
-        const member = getMemberFromMention(msg.guild, memberMention);
+        const member = getMemberFromMention(msg.guild, memberMention, true);
         if (member.permissions.has("ADMINISTRATOR")) {
             throw new Error("нельзя кинуть предупреждение администратору");
         }
@@ -53,7 +53,7 @@ export class UnwarnCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         const memberMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание извинившегося участника сервера");
 
-        const member = getMemberFromMention(msg.guild, memberMention);
+        const member = getMemberFromMention(msg.guild, memberMention, true);
         if (member == msg.member) {
             throw new Error("нельзя снять предупреждение с самого себя");
         }
@@ -90,7 +90,7 @@ export class ClearWarnsCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         const memberMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание извинившегося участника сервера");
 
-        const member = getMemberFromMention(msg.guild, memberMention);
+        const member = getMemberFromMention(msg.guild, memberMention, true);
         if (member == msg.member) {
             throw new Error("нельзя снять предупреждение с самого себя");
         }

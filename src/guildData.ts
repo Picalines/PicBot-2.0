@@ -49,7 +49,7 @@ export class GuildData extends DataObject {
     }
 
     deleteAccount(member: Discord.GuildMember): boolean {
-        if (member != null && !member.user.bot) {
+        if (member != null) {
             delete this.accounts[member.id];
             return this.accounts[member.id] == undefined;
         }

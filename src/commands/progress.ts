@@ -5,8 +5,12 @@ import { getGuildData } from "../guildData";
 import { getAccount } from "../account";
 import { getLevel } from "./stats";
 
+interface IRoleAction {
+    [0]: "add" | "rm", [1]: string;
+}
+
 export interface IProgression {
-    [i: number]: { [0]: "add" | "rm", [1]: string }[]
+    [i: number]: IRoleAction[]
 }
 
 export class ProgressCommand extends Command {
@@ -64,7 +68,7 @@ export class ProgressCommand extends Command {
             throw new Error("это действие уже назначено");
         }
 
-        progression[lvl].push([ operation, role.id ]);
+        progression[lvl].push([operation, role.id]);
 
         prop.value = JSON.stringify(progression);
 
@@ -72,33 +76,16 @@ export class ProgressCommand extends Command {
     }
 }
 
-export async function handleProgression(member: GuildMember, channel?: TextChannel) {
-    if (member.user.bot) return;
-    
-    const guildData = getGuildData(member);
-    const lvl = getLevel(getAccount(member).getProperty<number>("xp", 0).value);
-
-    if (channel === undefined) {
-        channel = member.guild.systemChannel as TextChannel;
-    }
-
-    const progressionProp = guildData.getProperty<string>("progression");
-    if (!progressionProp) {
-        return;
-    }
-
-    const progression: IProgression = JSON.parse(progressionProp.value);
-    if (!progression[lvl]) {
-        return;
-    }
-
-    if (!member.guild.me.permissions.has("MANAGE_ROLES")) {
-        await channel.send(generateErrorEmbed(`у меня нет права на управление ролями, из-за чего ${member.displayName} не может прогрессировать!`));
-    }
-
+async function addRoles(member: GuildMember, channel: TextChannel, lvl: number, progression: IProgression): Promise<string> {
+    const promises: Promise<any>[] = [];
     let desc = "";
 
     for (const action of progression[lvl]) {
+        const hasRole = member.roles.some(r => r.id == action[1]);
+        if ((action[0] == "add" && hasRole) || (action[0] == "rm" && !hasRole)) {
+            continue;
+        }
+
         const role = member.guild.roles.find(r => r.id == action[1]);
         if (!role) {
             await channel.send(generateErrorEmbed(`не могу найти роль ${action[1]}. Орите на владельца сервера!`));
@@ -106,8 +93,39 @@ export async function handleProgression(member: GuildMember, channel?: TextChann
         }
 
         const reason = `Получен уровень ${lvl}`;
-        await member[action[0] == "add" ? "addRole" : "removeRole"](role, reason);
-        desc += `${action[0] == "add" ? "получена": "потеряна"} роль ${role.name}\n`;
+        const editPromise = member[action[0] == "add" ? "addRole" : "removeRole"](role, reason);
+        promises.push(editPromise);
+
+        desc += `${action[0] == "add" ? "получена" : "потеряна"} роль ${role.name}\n`;
+    }
+
+    await Promise.all(promises);
+    return desc;
+}
+
+export async function handleProgression(member: GuildMember, channel?: TextChannel) {
+    if (member.user.bot) return;
+
+    const ch = channel ?? member.guild.systemChannel as TextChannel;
+
+    if (!member.guild.me.permissions.has("MANAGE_ROLES")) {
+        await ch.send(generateErrorEmbed(`у меня нет права на управление ролями, из-за чего ${member.displayName} не может прогрессировать!`));
+    }
+
+    const guildData = getGuildData(member);
+    const lvl = getLevel(getAccount(member).getProperty<number>("xp", 0).value);
+
+    const progressionProp = guildData.getProperty<string>("progression");
+    if (!progressionProp) {
+        return;
+    }
+
+    const progression: IProgression = JSON.parse(progressionProp.value);
+    const progressPoints = Object.keys(progression).map(s => Number(s)).filter(n => n <= lvl);
+
+    let desc = "";
+    for (const p of progressPoints) {
+        desc += await addRoles(member, ch, p, progression);
     }
 
     const progressEmbed = new RichEmbed()
@@ -121,14 +139,14 @@ export async function handleProgression(member: GuildMember, channel?: TextChann
     }
     catch (err2) {
         if (err2 instanceof RangeError) {
-            err = err2; 
+            err = err2;
         }
     }
 
     if (err) {
-        await channel.send(`${member}, прогрессируешь!\n${desc}`);
+        await ch.send(`${member}, прогрессируешь!\n${desc}`);
     }
     else {
-        await channel.send(progressEmbed);
+        await ch.send(progressEmbed);
     }
 }

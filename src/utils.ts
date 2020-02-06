@@ -55,7 +55,7 @@ export class Enumerator<T> {
     }
 }
 
-export function getMemberFromMention(guild: Guild | GuildData, mention: string | Token<ArgumentType>, botCheck: boolean = true): GuildMember {
+export function getMemberFromMention(guild: Guild | GuildData, mention: string | Token<ArgumentType>, botCheck: boolean): GuildMember {
     if (guild instanceof GuildData) {
         guild = guild.guild;
     }
@@ -133,6 +133,15 @@ export function generateErrorEmbed(message: Error | string, includeSmile?: boole
         }
     }
     return errorEmbed;
+}
+
+export async function clearRoles(member: GuildMember, reason?: string) {
+    for (const [id, r] of member.roles) {
+        try {
+            await member.removeRole(r);
+        }
+        catch (_) {}
+    }
 }
 
 /**
