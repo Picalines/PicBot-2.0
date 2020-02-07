@@ -54,6 +54,9 @@ export abstract class Command {
             if (arg[2] == false) {
                 sarg = `[${sarg}]`;
             }
+            else {
+                sarg = `<${sarg}>`;
+            }
             s += `\`${sarg}\` `;
         }
         return s.slice(0, -1);

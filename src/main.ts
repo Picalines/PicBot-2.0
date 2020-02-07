@@ -36,17 +36,17 @@ bot.on("ready", async () => {
 });
 
 bot.on("message", async msg => {
-    if (msg.author.bot || msg.system || msg.type != "DEFAULT" || !msg.guild.available) return;
+    if (msg.author.bot || msg.system || msg.type != "DEFAULT") return;
 
     if (msg.channel.type == "dm" && msg.author.id == (process.env.DISCORD_OWNER_ID || "")) {
         switch (msg.content) {
-            case "reload": resetLoadedScripts(); await loadCommands(); break;
-            case "reload s": resetLoadedScripts(); break;
-            case "reload c": await loadCommands(); break;
+            case "reload": resetLoadedScripts(); await loadCommands(); await msg.author.send("команды и скрипты успешно перезагружены"); break;
+            case "reload s": resetLoadedScripts(); await msg.author.send("скрипты успешно перезагружены"); break;
+            case "reload c": await loadCommands(); await msg.author.send("команды успешно перезагружены"); break;
             case "exit": await onClose(true);
         }
     }
-    if (msg.channel.type != "text") {
+    if (msg.channel.type != "text" || !msg.guild?.available) {
         return;
     }
 

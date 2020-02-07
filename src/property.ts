@@ -76,6 +76,10 @@ export class DataObject implements ISerializeable {
         return this.properties.find(p => p.name == name) != undefined;
     }
 
+    checkProperty(name: string, value: PropertyType): boolean {
+        return this.properties.some(p => p.name == name && p.value === value);
+    }
+
     serialize(): {} {
         const propFilter = (p: Property) => p.name != String(undefined) && p.value != null;
         return this.properties.filter(propFilter).map(p => p.serialize()) as IProperty[];

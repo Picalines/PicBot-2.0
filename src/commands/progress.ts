@@ -1,4 +1,4 @@
-import { getRoleFromMention, generateErrorEmbed, colors } from "../utils";
+import { getRoleFromMention, generateErrorEmbed, colors, getMemberFromMention } from "../utils";
 import { Message, GuildMember, TextChannel, RichEmbed } from "discord.js";
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { getGuildData } from "../guildData";
@@ -17,7 +17,7 @@ export class ProgressCommand extends Command {
     info: CommandInfo = {
         name: "progress",
         syntax: [["word", "add|rm|clear"], ["role", "role"], ["int", "lvl"]],
-        description: "ставит точку прогрессии, когда на уровне `lvl` нужно добавить (`add`) / удалить (`rm`) роль `role` (`clear` сбрасывает всю прогрессию)",
+        description: "ставит точку прогрессии, когда на уровне `lvl` нужно добавить (`add`) / удалить (`rm`) роль `role` (`clear` сбрасывает прогрессию на уровне `lvl` / всю прогрессию)",
         permission: "owner",
         group: "Настройки"
     };
@@ -25,34 +25,35 @@ export class ProgressCommand extends Command {
     private readonly opErrMsg = "ожидалась операция `add` / `rm` / `clear`";
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
-        let operation = this.readNextToken(argEnumerator, "word", this.opErrMsg);
+        const operation = this.readNextToken(argEnumerator, "word", this.opErrMsg);
 
-        let guildData = getGuildData(msg);
+        const guildData = getGuildData(msg);
 
+        let clearLvl = -1;
         if (operation == "clear") {
-            guildData.removeProperty("progression");
-            await msg.reply("прогрессия успешно очищена.");
-            return;
+            clearLvl = Number(this.readNextToken(argEnumerator, "int", "ожидался номер уровня", "-1"));
+            if (clearLvl == -1) {
+                guildData.removeProperty("progression");
+                await msg.reply("прогрессия успешно очищена.");
+                return;
+            }
         }
         else if (operation != "add" && operation != "rm") {
             throw new Error(this.opErrMsg);
         }
 
-        let roleMention = this.readNextToken(argEnumerator, "role", "ожидалось упоминание роли");
-        let role = getRoleFromMention(msg.guild, roleMention);
-        let lvl = Number(this.readNextToken(argEnumerator, "int", "ожидался номер уровня"));
+        const roleMention = this.readNextToken(argEnumerator, "role", "ожидалось упоминание роли");
+        const role = getRoleFromMention(msg.guild, roleMention);
+        const lvl = Number(this.readNextToken(argEnumerator, "int", "ожидался номер уровня"));
 
-        let prop = guildData.getProperty<string>("progression", "{}");
+        const prop = guildData.getProperty<string>("progression", "{}");
 
-        let progression: IProgression = {};
+        let progression: IProgression | undefined = undefined;
         try {
             progression = JSON.parse(prop.value);
         }
-        catch (err) {
-            if (err instanceof SyntaxError) {
-                prop.value = "{}";
-                progression = {};
-            }
+        catch (_) {
+            progression = undefined;
         }
 
         if (progression == undefined) {
@@ -60,15 +61,20 @@ export class ProgressCommand extends Command {
             progression = {};
         }
 
-        if (!progression[lvl]) {
-            progression[lvl] = [];
+        if (operation == "clear") {
+            delete progression[clearLvl];
         }
-
-        if (progression[lvl].find(p => p[0] == operation && p[1] == role.id)) {
-            throw new Error("это действие уже назначено");
+        else {
+            if (!progression[lvl]) {
+                progression[lvl] = [];
+            }
+    
+            if (progression[lvl].find(p => p[0] == operation && p[1] == role.id)) {
+                throw new Error("это действие уже назначено");
+            }
+    
+            progression[lvl].push([operation, role.id]);
         }
-
-        progression[lvl].push([operation, role.id]);
 
         prop.value = JSON.stringify(progression);
 
@@ -103,8 +109,10 @@ async function addRoles(member: GuildMember, channel: TextChannel, lvl: number, 
     return desc;
 }
 
+const ignoreProgress = "ignoreProgress";
+
 export async function handleProgression(member: GuildMember, channel?: TextChannel) {
-    if (member.user.bot) return;
+    if (member.user.bot || getAccount(member).checkProperty(ignoreProgress, true)) return;
 
     const ch = channel ?? member.guild.systemChannel as TextChannel;
 
@@ -128,6 +136,10 @@ export async function handleProgression(member: GuildMember, channel?: TextChann
         desc += await addRoles(member, ch, p, progression);
     }
 
+    if (desc.replace(/\s+/g, "").length == 0) {
+        return;
+    }
+
     const progressEmbed = new RichEmbed()
         .setTitle(`${member.displayName} прогрессирует!`)
         .setThumbnail(member.user.avatarURL)
@@ -148,5 +160,33 @@ export async function handleProgression(member: GuildMember, channel?: TextChann
     }
     else {
         await ch.send(progressEmbed);
+    }
+}
+
+export class ProgressIgnoreCommand extends Command {
+    info: CommandInfo = {
+        name: "progressignore",
+        aliases: ["progignore"],
+        syntax: [["user", "member"]],
+        description: "участник `member` не будет прогрессировать",
+        permission: "owner",
+        group: "Настройки"
+    };
+
+    async run(msg: Message, argEnumerator: ArgumentEnumerator) {
+        const memberMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера");
+        const member = getMemberFromMention(msg.guild, memberMention, true);
+
+        const acc = getAccount(member);
+        const isIgnoring = acc.getProperty<boolean>(ignoreProgress, false).value;
+
+        if (!isIgnoring) {
+            acc.setProperty(ignoreProgress, true);
+            await msg.reply(`${member.displayName} больше не будет прогрессировать`);
+        }
+        else {
+            acc.removeProperty(ignoreProgress);
+            await msg.reply(`${member.displayName} продолжит прогрессировать`);
+        }
     }
 }

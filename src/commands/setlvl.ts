@@ -29,3 +29,28 @@ export class SetLevelCommand extends Command {
         }
     }
 }
+
+export class SetXpCommand extends Command {
+    info: CommandInfo = {
+        name: "setxp",
+        syntax: [["user", "member"], ["int", "xp"]],
+        description: "ставит `xp` для `member`",
+        permission: "owner",
+        group: "Администрирование"
+    };
+
+    async run(msg: Message, argEnumerator: ArgumentEnumerator) {
+        const memberMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера");
+        const xp = Number(this.readNextToken(argEnumerator, "int", "ожидался xp"));
+
+        const member = getMemberFromMention(msg.guild, memberMention, true);
+
+        getAccount(member).setProperty("xp", xp);
+        await msg.reply("кол-во xp успешно обновлено");
+
+        if (msg.guild.me.hasPermission("MANAGE_ROLES")) {
+            await clearRoles(member);
+            await handleProgression(member, msg.channel as TextChannel);
+        }
+    }
+}
