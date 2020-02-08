@@ -29,9 +29,8 @@ export class DatabaseCommand extends Command {
 
                 if (msg.guild.me.hasPermission("MANAGE_ROLES")) {
                     await clearRoles(member, "сброс аккаунта");
+                    await handleProgression(member, undefined, false);
                 }
-
-                await handleProgression(member);
 
                 break;
             
@@ -51,7 +50,7 @@ export class DatabaseCommand extends Command {
 
                 if (msg.guild.me.hasPermission("MANAGE_ROLES")) {
                     await Promise.all([clearRoles(member), clearRoles(target)]);
-                    await Promise.all([handleProgression(member), handleProgression(target)]);
+                    await Promise.all([handleProgression(member), handleProgression(target, undefined, false)]);
                 }
 
                 await msg.reply("перенос аккаунта успешно завершён");

@@ -83,7 +83,6 @@ export class ProgressCommand extends Command {
 }
 
 async function addRoles(member: GuildMember, channel: TextChannel, lvl: number, progression: IProgression): Promise<string> {
-    const promises: Promise<any>[] = [];
     let desc = "";
 
     for (const action of progression[lvl]) {
@@ -99,19 +98,17 @@ async function addRoles(member: GuildMember, channel: TextChannel, lvl: number, 
         }
 
         const reason = `Получен уровень ${lvl}`;
-        const editPromise = member[action[0] == "add" ? "addRole" : "removeRole"](role, reason);
-        promises.push(editPromise);
+        await member[action[0] == "add" ? "addRole" : "removeRole"](role, reason);
 
         desc += `${action[0] == "add" ? "получена" : "потеряна"} роль ${role.name}\n`;
     }
 
-    await Promise.all(promises);
     return desc;
 }
 
 const ignoreProgress = "ignoreProgress";
 
-export async function handleProgression(member: GuildMember, channel?: TextChannel) {
+export async function handleProgression(member: GuildMember, channel?: TextChannel, onlyCurrent: boolean = true) {
     if (member.user.bot || getAccount(member).checkProperty(ignoreProgress, true)) return;
 
     const ch = channel ?? member.guild.systemChannel as TextChannel;
@@ -128,12 +125,18 @@ export async function handleProgression(member: GuildMember, channel?: TextChann
         return;
     }
 
-    const progression: IProgression = JSON.parse(progressionProp.value);
-    const progressPoints = Object.keys(progression).map(s => Number(s)).filter(n => n <= lvl);
-
     let desc = "";
-    for (const p of progressPoints) {
-        desc += await addRoles(member, ch, p, progression);
+    const progression: IProgression = JSON.parse(progressionProp.value);
+
+    if (onlyCurrent) {
+        if (!progression[lvl]) return;
+        desc = await addRoles(member, ch, lvl, progression);
+    }
+    else {
+        const progressPoints = Object.keys(progression).map(s => Number(s)).filter(n => n <= lvl);
+        for (const p of progressPoints) {
+            desc += await addRoles(member, ch, p, progression);
+        }
     }
 
     if (desc.replace(/\s+/g, "").length == 0) {

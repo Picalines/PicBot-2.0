@@ -25,7 +25,7 @@ export class SetLevelCommand extends Command {
 
         if (msg.guild.me.hasPermission("MANAGE_ROLES")) {
             await clearRoles(member);
-            await handleProgression(member, msg.channel as TextChannel);
+            await handleProgression(member, msg.channel as TextChannel, false);
         }
     }
 }
@@ -50,7 +50,7 @@ export class SetXpCommand extends Command {
 
         if (msg.guild.me.hasPermission("MANAGE_ROLES")) {
             await clearRoles(member);
-            await handleProgression(member, msg.channel as TextChannel);
+            await handleProgression(member, msg.channel as TextChannel, false);
         }
     }
 }
