@@ -1,7 +1,7 @@
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { getMemberFromMention, clearRoles } from "../utils";
 import { getGuildData } from "../guildData";
-import { Message } from "discord.js";
+import { Message, TextChannel } from "discord.js";
 import { handleProgression } from "./progress";
 
 export class DatabaseCommand extends Command {
@@ -29,7 +29,7 @@ export class DatabaseCommand extends Command {
 
                 if (msg.guild.me.hasPermission("MANAGE_ROLES")) {
                     await clearRoles(member, "сброс аккаунта");
-                    await handleProgression(member, undefined, false);
+                    await handleProgression(member, msg.channel as TextChannel, false);
                 }
 
                 break;
@@ -50,7 +50,8 @@ export class DatabaseCommand extends Command {
 
                 if (msg.guild.me.hasPermission("MANAGE_ROLES")) {
                     await Promise.all([clearRoles(member), clearRoles(target)]);
-                    await Promise.all([handleProgression(member), handleProgression(target, undefined, false)]);
+                    const ch = msg.channel as TextChannel;
+                    await Promise.all([handleProgression(member, ch), handleProgression(target, ch, false)]);
                 }
 
                 await msg.reply("перенос аккаунта успешно завершён");
