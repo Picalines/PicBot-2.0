@@ -172,6 +172,7 @@ export async function runCommand(msg: Discord.Message, name: string, command: Co
         const input = msg.content.slice(msg.content.toLowerCase().search(cname) + cname.length);
         const inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
         await command.run(msg, new Enumerator(inputTokens));
+        msg.channel.stopTyping(true);
     }
     catch (err) {
         await msg.reply(generateErrorEmbed(err));

@@ -22,6 +22,7 @@
     "discord.js": "^11.5.1",
     "dotenv": "^8.2.0",
     "googleapis": "^46.0.0",
+    "jimp": "^0.9.3",
     "opusscript": "0.0.7",
     "string-similarity": "^3.0.0",
     "typescript": "^3.7.3",

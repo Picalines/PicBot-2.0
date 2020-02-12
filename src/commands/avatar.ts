@@ -1,6 +1,6 @@
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { getMemberFromMention } from "../utils";
-import { Message, RichEmbed } from "discord.js";
+import { Message } from "discord.js";
 
 export class AvatarCommand extends Command {
     info: CommandInfo = {
@@ -36,8 +36,6 @@ export class AvatarCommand extends Command {
             _avatarURL = avatarURL;
         }
 
-        const avatarEmbed = new RichEmbed().setImage(_avatarURL);
-
-        await msg.reply(avatarEmbed);
+        await msg.reply(_avatarURL);
     }
 }

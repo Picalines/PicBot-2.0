@@ -123,6 +123,8 @@ export class PlayCommand extends Command {
         if (arg == "") {
             throw new Error(this.invalidLinkMsg);
         }
+        
+        msg.channel.startTyping();
 
         if (ytdl.validateURL(arg)) {
             let info: ytdl.videoInfo;
