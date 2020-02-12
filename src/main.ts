@@ -154,7 +154,6 @@ bot.on("guildDelete", async guild => {
 
 async function backup() {
     await database.save();
-    await Debug.Save();
 }
 
 setInterval(backup, Number(process.env.BACKUP_DELAY_MIN) || 3600000);
@@ -162,15 +161,17 @@ setInterval(backup, Number(process.env.BACKUP_DELAY_MIN) || 3600000);
 bot.on("error", async err => {
     Debug.Log("Disconnected from Discord. Trying to connect again (10s delay)...", "warning");
     Debug.Log(err, "error");
-    await delay(10000);
-    try {
-        await bot.login(process.env.DISCORD_TOKEN);
+    while (true) {
+        try {
+            await delay(1000);
+            await bot.login(process.env.DISCORD_TOKEN);
+            break;
+        }
+        catch (_) {
+            Debug.Log("reconnection failed");
+        }
     }
-    catch (serr) {
-        Debug.Log(serr, "error");
-        Debug.Log("Failed to reconnect. Closing program", "error");
-        process.exit();
-    }
+    Debug.Log("Successfully reconnected (WebSocket error)");
 });
 
 bot.on("reconnecting", () => {

@@ -14,9 +14,3 @@ export const isDirectory = async (path: string) => (await lstat(path)).isDirecto
 export async function readJson<T = any>(path: string): Promise<T> {
     return JSON.parse((await readFile(path)).toString()) as T;
 }
-
-export async function checkFolder(path: string) {
-    if (!(await exists(path))) {
-        await mkdir(path);
-    }
-}

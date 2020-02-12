@@ -5,7 +5,7 @@ import { bot } from "./main";
 
 export const databaseFolderPath = "./database/";
 export const guildsFolderPath = databaseFolderPath + "guilds/";
-export const assetsFolderPath = databaseFolderPath + "assets/";
+export const assetsFolderPath = "./assets/";
 
 export async function load() {
     Debug.Log("loading database...");
@@ -23,8 +23,6 @@ export async function save() {
 
 export async function loadGuilds() {
     Debug.Log("loading guilds data...");
-    await fs.checkFolder(databaseFolderPath);
-    await fs.checkFolder(guildsFolderPath);
 
     const files = (await fs.readdir(guildsFolderPath)).filter(f => f.endsWith(".json"));
 
@@ -43,8 +41,6 @@ export async function loadGuilds() {
 
 export async function saveGuilds() {
     Debug.Log("saving guilds data...");
-    await fs.checkFolder(databaseFolderPath);
-    await fs.checkFolder(guildsFolderPath);
 
     const writes: Promise<void>[] = Object.values(guildsData).map(guild => {
         const serialized = JSON.stringify(guild.serialize());

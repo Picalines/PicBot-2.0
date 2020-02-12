@@ -2,10 +2,13 @@ node_modules/
 .vscode/
 dist/
 
-database/
-database\ copy/
-
 .env
 logs.txt
 
 migrate.js
+
+database/guilds/*
+!database/guilds/.gitkeep
+
+scripts/*
+!scripts/.gitkeep

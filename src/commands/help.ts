@@ -19,9 +19,20 @@ function compareCommandList(a: CommandList, b: CommandList): number {
     return b.group.length - a.group.length;
 }
 
-type ArgTypeDescriptions = {
-    [key in keyof ArgumentType]: string;
+const argTypeDescriptions: { [key in ArgumentType]: string; } = {
+    word: "слово",
+    int: "целое положительное число",
+    float: "нецелое положительное число",
+    string: "несколько слов в кавычках (`\"`) или апострафах (`'`)",
+    channel: "упоминание канала",
+    user: "упоминание юзера",
+    role: "упоминание роли",
+    everyone: "@everyone",
+    here: "@here",
+    space: ""
 }
+
+delete argTypeDescriptions["space"];
 
 export class HelpCommand extends Command {
     info: CommandInfo = {
@@ -80,15 +91,13 @@ export class HelpCommand extends Command {
     }
 
     private async generateTypesHelp(): Promise<RichEmbed> {
-        const typeDesc = await fs.readJson<ArgTypeDescriptions>(assetsFolderPath + "helpArgType.json");
-
         const embed = new RichEmbed()
             .setTitle("Типы аргументов")
             .setColor(colors.GREEN);
 
         let s = "";
-        for (const t in typeDesc) {
-            s += `\`${t}\` - ${typeDesc[t]}\n`;
+        for (const t in argTypeDescriptions) {
+            s += `\`${t}\` - ${argTypeDescriptions[t as ArgumentType]}\n`;
         }
 
         return embed.setDescription(s);
@@ -104,7 +113,7 @@ export class HelpCommand extends Command {
         if (info.aliases) {
             embed.addField("Алиасы", `${info.aliases.join(", ")}`)
         }
-        
+
         return embed.addField("Группа", info.group || "Другое");
     }
 
@@ -117,7 +126,7 @@ export class HelpCommand extends Command {
             if (this.typesHelp == undefined) {
                 this.typesHelp = await this.generateTypesHelp();
             }
-            
+
             await msg.reply(this.typesHelp);
         }
         else {
