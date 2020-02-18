@@ -121,6 +121,8 @@ bot.on("message", async msg => {
             }
         }
     }
+
+    msg.channel.stopTyping(true);
 });
 
 bot.on("guildBanRemove", async (guild, user) => {

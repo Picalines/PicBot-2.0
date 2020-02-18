@@ -120,23 +120,24 @@ export class HelpCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         const name = this.readNextToken(argEnumerator, "word", "Ожидалось имя команды", "_all_");
         if (name == "_all_") {
-            await msg.channel.send(`${msg.member}, для помощи по типам аргументов юзай \`help ${this.argTypeArg}\``, this.generateList(msg.member));
+            await msg.author.send(`${msg.member}, для помощи по типам аргументов юзай \`help ${this.argTypeArg}\``, this.generateList(msg.member));
         }
         else if (name == this.argTypeArg) {
             if (this.typesHelp == undefined) {
                 this.typesHelp = await this.generateTypesHelp();
             }
 
-            await msg.reply(this.typesHelp);
+            await msg.author.send(this.typesHelp);
         }
         else {
             const c = findCommand(c => c.matchesName(name));
-
+            
             if (c == undefined) {
                 throw new Error(`Информация о команде '${name}' не найдена`);
             }
-
-            await msg.reply(this.generateCommandHelp(c.info));
+            
+            await msg.author.send(this.generateCommandHelp(c.info));
         }
+        await msg.delete();
     }
 }

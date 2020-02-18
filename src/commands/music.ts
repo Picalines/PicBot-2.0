@@ -92,9 +92,9 @@ export class PlayCommand extends Command {
 
         return basicInfos.filter(i => Number(i.length_seconds) > 0).map((i): VideoInfo => ({
             id: i.video_id,
-            author: i.author.name,
+            author: i.author.name || ":/",
             duration: timestamp(Number(i.length_seconds)),
-            title: i.title
+            title: i.title || ":/"
         }));
     }
 
@@ -144,8 +144,8 @@ export class PlayCommand extends Command {
                 msg,
                 info: {
                     id: getVideoID(arg),
-                    title: info.title,
-                    author: info.author.name,
+                    title: info.title || ":/",
+                    author: info.author.name || ":/",
                     duration: timestamp(length)
                 }
             });
@@ -230,6 +230,8 @@ export class PlayCommand extends Command {
 
             await msg.reply("трек добавлен в очередь");
         }
+
+        msg.channel.stopTyping(true);
 
         if (!this.connectedTo(msg.member.voiceChannel)) {
             let connection = await msg.member.voiceChannel.join();
@@ -406,7 +408,7 @@ export class SkipCommand extends Command {
         }
 
         if (current.msg.author == msg.author || msg.member.permissions.has('ADMINISTRATOR')) {
-            msg.member.voiceChannel.connection.dispatcher.end("skipCommand")
+            msg.member.voiceChannel.connection?.dispatcher.end("skipCommand")
             await msg.reply("трек успешно пропущен");
         }
         else {
@@ -433,7 +435,7 @@ export class StopCommand extends Command {
             const loopCommand = findCommand(c => c instanceof LoopCommand) as LoopCommand | undefined;
             loopCommand?.clearLoop(msg.guild.id);
 
-            voiceChannel.connection.dispatcher.end("stopCommand");
+            voiceChannel.connection?.dispatcher.end("stopCommand");
             await msg.reply("музыка (*надеюсь*) успешно остановлена");
         }
 
