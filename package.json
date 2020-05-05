@@ -12,6 +12,9 @@
     "nodejs"
   ],
   "author": "picalines",
+  "repository": {
+    "url": "https://github.com/Picalines/PicBot-2.0"
+  },
   "license": "ISC",
   "engines": {
     "node": "^13.6.0"
@@ -25,6 +28,7 @@
     "opusscript": "0.0.7",
     "string-similarity": "^3.0.0",
     "typescript": "^3.7.3",
-    "ytdl-core": "^1.0.3"
+    "ytdl-core": "^1.0.3",
+    "minimist": ">=0.2.1"
   }
 }
