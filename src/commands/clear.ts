@@ -1,6 +1,5 @@
 import { Command, CommandInfo, ArgumentEnumerator } from "../command";
 import { Message } from "discord.js";
-import { delay } from "../utils";
 
 export class ClearCommand extends Command {
     info: CommandInfo = {
@@ -14,15 +13,17 @@ export class ClearCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         const n = Number(this.readNextToken(argEnumerator, 'int', 'ожидалось целое число сообщений')) + 1;
 
-        const channel = msg.channel;
         const messages = await msg.channel.bulkDelete(n);
 
         if (messages.size > 0) {
-            const id = ((await msg.channel.send(`**${msg.member.displayName}** замял чьи-то сообщения (${messages.size - 1})`)) as Message).id;
-            await delay(2500);
-            const m = await channel.fetchMessage(id);
+            const m = (await msg.channel.send(`**${msg.member.displayName}** замял чьи-то сообщения (${messages.size - 1})`)) as Message;
             if (m?.deletable) {
-                await m.delete();
+                try {
+                    await m.delete(5000);
+                }
+                catch (err) {
+                    console.log(`${this.info.name} command error on deleting a message (not saved)`);
+                }
             }
         }
         else {

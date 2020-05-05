@@ -1,11 +1,10 @@
-import { databaseFolderPath } from "./database";
 import * as fs from "./fsAsync";
 import { Debug } from "./debug";
 import { Script, createContext } from "vm";
 
 import discord = require("discord.js");
 
-export const databaseScriptsPath = databaseFolderPath + "scripts/";
+export const scriptsFolderPath = "./scripts/";
 
 type ScriptableEvent = "message" | "guildMemberAdd" | "guildMemberRemove";
 
@@ -35,7 +34,7 @@ async function loadScript(path: string): Promise<boolean> {
 }
 
 export async function runScript(guild: discord.Guild, event: ScriptableEvent, args?: ScriptArguments): Promise<void> {
-    const path = databaseScriptsPath + guild.id + "/" + event + ".js";
+    const path = scriptsFolderPath + guild.id + "/" + event + ".js";
 
     if (!hasLoadedScript(path) && !(await loadScript(path))) {
         return;

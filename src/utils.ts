@@ -48,14 +48,14 @@ export class Enumerator<T> {
 
     movePrevious(): boolean {
         if (this.index > 0) {
-            this.index =- 1;
+            this.index = - 1;
             return this.index == 0;
         }
         return false;
     }
 }
 
-export function getMemberFromMention(guild: Guild | GuildData, mention: string | Token<ArgumentType>, botCheck: boolean = true): GuildMember {
+export function getMemberFromMention(guild: Guild | GuildData, mention: string | Token<ArgumentType>, botCheck: boolean): GuildMember {
     if (guild instanceof GuildData) {
         guild = guild.guild;
     }
@@ -106,7 +106,7 @@ export function getRoleFromMention(guild: Guild | GuildData, mention: string | T
     }
 
     let id = mention.replace(/[^\d]/g, "");
-    
+
     let role = guild.roles.find(r => r.id == id);
     if (role == null) {
         throw new RoleNotFoundError(mention);
@@ -133,6 +133,15 @@ export function generateErrorEmbed(message: Error | string, includeSmile?: boole
         }
     }
     return errorEmbed;
+}
+
+export async function clearRoles(member: GuildMember, reason?: string) {
+    for (const [id, r] of member.roles) {
+        try {
+            await member.removeRole(r);
+        }
+        catch (_) {}
+    }
 }
 
 /**
@@ -162,6 +171,17 @@ export function isOneOf<T>(value: T, ...variants: T[]): boolean {
         }
     }
     return false;
+}
+
+export function flat<T>(array: (T | T[])[]) {
+    const flattend: T[] = [];
+    (function f(array) {
+        array.forEach(function (el) {
+            if (Array.isArray(el)) f(el);
+            else flattend.push(el);
+        });
+    })(array);
+    return flattend;
 }
 
 // #region discord colors
@@ -236,7 +256,7 @@ export function timestamp(seconds: number) {
     let minutes = dateObj.getUTCMinutes();
     seconds = dateObj.getSeconds();
 
-    return hours.toString().padStart(2, '0') + ':' + 
-        minutes.toString().padStart(2, '0') + ':' + 
+    return hours.toString().padStart(2, '0') + ':' +
+        minutes.toString().padStart(2, '0') + ':' +
         seconds.toString().padStart(2, '0');
 }

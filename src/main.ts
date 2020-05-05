@@ -1,5 +1,5 @@
 import { loadCommands, findCommand, commands, runCommand } from "./command";
-import { delay, generateErrorEmbed, emojis } from "./utils";
+import { delay, generateErrorEmbed, emojis, flat } from "./utils";
 import { getGuildData, deleteGuildData } from "./guildData";
 import { runScript, resetLoadedScripts } from "./scripting";
 import { getLevel, handleNewLevel } from "./commands/stats";
@@ -36,17 +36,17 @@ bot.on("ready", async () => {
 });
 
 bot.on("message", async msg => {
-    if (msg.author.bot || msg.system) return;
+    if (msg.author.bot || msg.system || msg.type != "DEFAULT") return;
 
     if (msg.channel.type == "dm" && msg.author.id == (process.env.DISCORD_OWNER_ID || "")) {
         switch (msg.content) {
-            case "reload": resetLoadedScripts(); await loadCommands(); break;
-            case "reload scripts": resetLoadedScripts(); break;
-            case "reload commands": await loadCommands(); break;
+            case "reload": resetLoadedScripts(); await loadCommands(); await msg.author.send("команды и скрипты успешно перезагружены"); break;
+            case "reload s": resetLoadedScripts(); await msg.author.send("скрипты успешно перезагружены"); break;
+            case "reload c": await loadCommands(); await msg.author.send("команды успешно перезагружены"); break;
             case "exit": await onClose(true);
         }
     }
-    if (msg.channel.type != "text") {
+    if (msg.channel.type != "text" || !msg.guild?.available) {
         return;
     }
 
@@ -86,15 +86,15 @@ bot.on("message", async msg => {
         return;
     }
 
-    let command = findCommand(c => cname == c.info.name.toLowerCase());
+    let command = findCommand(c => c.matchesName(cname));
 
     if (command != undefined) {
-        await runCommand(msg, command);
+        await runCommand(msg, cname, command);
     }
     else {
         let errMsg = `Команда \`${cname}\` не найдена`;
 
-        const commandNames = commands.map(c => c.info.name.toLowerCase());
+        const commandNames = flat(commands.map(c => [c.info.name, ...(c.info.aliases || [])]));
         const bestMatches = findBestMatch(cname, commandNames);
         const nearest = bestMatches.bestMatch.target;
         
@@ -111,16 +111,18 @@ bot.on("message", async msg => {
                 await rmsg.delete();
             }
             
-            command = findCommand(c => c.info.name.toLowerCase() == nearest);
+            command = findCommand(c => c.matchesName(nearest));
 
             if (command == undefined) {
                 await msg.reply(generateErrorEmbed("произошла неизвестная ошибка"));
             }
             else {
-                await runCommand(msg, command, cname);
+                await runCommand(msg, cname, command);
             }
         }
     }
+
+    msg.channel.stopTyping(true);
 });
 
 bot.on("guildBanRemove", async (guild, user) => {
@@ -154,7 +156,6 @@ bot.on("guildDelete", async guild => {
 
 async function backup() {
     await database.save();
-    await Debug.Save();
 }
 
 setInterval(backup, Number(process.env.BACKUP_DELAY_MIN) || 3600000);
@@ -162,15 +163,18 @@ setInterval(backup, Number(process.env.BACKUP_DELAY_MIN) || 3600000);
 bot.on("error", async err => {
     Debug.Log("Disconnected from Discord. Trying to connect again (10s delay)...", "warning");
     Debug.Log(err, "error");
-    await delay(10000);
-    try {
-        await bot.login(process.env.DISCORD_TOKEN);
+    await backup();
+    while (true) {
+        try {
+            await delay(1000);
+            await bot.login(process.env.DISCORD_TOKEN);
+            break;
+        }
+        catch (_) {
+            Debug.Log("reconnection failed");
+        }
     }
-    catch (serr) {
-        Debug.Log(serr, "error");
-        Debug.Log("Failed to reconnect. Closing program", "error");
-        process.exit();
-    }
+    Debug.Log("Successfully reconnected (WebSocket error)");
 });
 
 bot.on("reconnecting", () => {

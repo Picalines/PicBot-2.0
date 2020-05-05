@@ -16,7 +16,7 @@ export class BanCommand extends Command {
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         let memberMention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание неугодного участника сервера");
 
-        let member = getMemberFromMention(msg.guild, memberMention);
+        let member = getMemberFromMention(msg.guild, memberMention, true);
         if (member == msg.member) {
             throw new Error("нельзя забанить самого себя");
         }

@@ -7,6 +7,7 @@ import { handleProgression } from "./progress";
 export class StatsCommand extends Command {
     info: CommandInfo = {
         name: "stats",
+        aliases: ["profile", "account"],
         syntax: [["user", "member", false]],
         description: "бот пишет вашу статистику на сервере",
         permission: "everyone"
@@ -14,7 +15,7 @@ export class StatsCommand extends Command {
 
     async run(msg: Message, argEnumerator: ArgumentEnumerator) {
         let mention = this.readNextToken(argEnumerator, "user", "ожидалось упоминание участника сервера", "none");
-        let member = mention != "none" ? getMemberFromMention(msg.guild, mention) : msg.member;
+        let member = mention != "none" ? getMemberFromMention(msg.guild, mention, true) : msg.member;
 
         await msg.channel.send(this.createEmbed(member));
     }
@@ -42,6 +43,10 @@ export function getLevel(xp: number | Account) {
         xp = xp.getProperty("xp", 0).value;
     }
     return Math.floor(Math.sqrt(xp / 8));
+}
+
+export function level2xp(lvl: number) {
+    return Math.floor(lvl * lvl * 8);
 }
 
 export async function handleNewLevel(msg: Message) {

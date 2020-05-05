@@ -20,6 +20,7 @@ export interface SyntaxArgument {
 
 export interface CommandInfo {
     readonly name: string;
+    readonly aliases?: string[];
     readonly syntax?: SyntaxArgument[];
     readonly description: string;
     readonly permission: CommandPermission;
@@ -29,6 +30,11 @@ export interface CommandInfo {
 export abstract class Command {
     abstract info: CommandInfo;
     abstract run(msg: Discord.Message, argEnumerator: ArgumentEnumerator): Promise<void>;
+
+    matchesName(searchName: string): boolean {
+        const { name, aliases } = this.info;
+        return searchName == name || Boolean(aliases && aliases.includes(searchName))
+    }
 
     checkPermission(member: Discord.GuildMember): boolean {
         if (member == null) return false;
@@ -47,6 +53,9 @@ export abstract class Command {
             let sarg = `${arg[1]}: ${arg[0]}`;
             if (arg[2] == false) {
                 sarg = `[${sarg}]`;
+            }
+            else {
+                sarg = `<${sarg}>`;
             }
             s += `\`${sarg}\` `;
         }
@@ -153,16 +162,17 @@ export async function loadCommands() {
     Debug.Log("commands successfully loaded");
 }
 
-export async function runCommand(msg: Discord.Message, command: Command, realName?: string) {
+export async function runCommand(msg: Discord.Message, name: string, command: Command) {
     if (!command.checkPermission(msg.member)) {
         await msg.reply("ты не можешь использовать эту команду :/");
         return;
     }
     try {
-        const cname = realName === undefined ? command.info.name.toLowerCase() : realName.toLowerCase();
+        const cname = name === undefined ? command.info.name.toLowerCase() : name.toLowerCase();
         const input = msg.content.slice(msg.content.toLowerCase().search(cname) + cname.length);
         const inputTokens = commandTokenizer.tokenize(input).filter(t => t.type != "space");
         await command.run(msg, new Enumerator(inputTokens));
+        msg.channel.stopTyping(true);
     }
     catch (err) {
         await msg.reply(generateErrorEmbed(err));
